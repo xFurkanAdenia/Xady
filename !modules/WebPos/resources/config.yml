@@ -1,0 +1,44 @@
+# WebPos Yapılandırma Dosyası
+# Bu dosya otomatik oluşturulmuştur. Değiştirip !webPos reload komutuyla yeniden yükleyebilirsiniz.
+
+# Mesaj regex örüntüsü - sunucu chat mesajından para transferini yakalar
+# Grup indeksleri aşağıda belirtilir
+message:
+  # Yakalanacak mesajın regex örüntüsü (capture group'lar kullanılır)
+  # Örnek: "MELONYA ⇴ PlayerName adlı oyuncudan 1.000,50⛁ alındı."
+  # Örnek2: "$(1000) PlayerName oyuncusundan alındı."
+  pattern: "^\\$\\((.*)\\) (.*) oyuncusundan alındı\\.$"
+
+  # Kullanıcı adının hangi capture group'ta olduğu (1-indexed)
+  username_index: 2
+
+  # Para miktarının hangi capture group'ta olduğu (1-indexed)
+  amount_index: 1
+
+  # Para formatındaki ayraç tipi: "comma_decimal" = 1.000,50 / "dot_decimal" = 1,000.50
+  # "comma_decimal" => binler nokta, ondalık virgül: 1.234.567,89
+  # "dot_decimal"   => binler virgül, ondalık nokta: 1,234,567.89
+  decimal_separator: "comma_decimal"
+
+# Sunucuya para gönderme komutu (bot bu komutu kullanır)
+pay_command: "/pay {username} {amount}"
+
+# Ödeme zaman aşımı (dakika) - bu süre içinde ödeme yapılmazsa iptal edilir
+payment_timeout_minutes: 15
+
+# Başarılı ödeme sonrası oyuncuya gönderilecek whisper mesajı
+messages:
+  success: "Ödemeniz onaylandı! Para üstü: {change}"
+  success_exact: "Ödemeniz onaylandı!"
+  insufficient: "Attığınız para ödemeniz için yetersiz! Gerekli: {amount}"
+  no_payment: "Aktif bir ödemeniz bulunmuyor!"
+  refund: "Para iade edildi."
+
+# WebPanel entegrasyonu
+webpanel:
+  # Sidebar menü başlığı
+  nav_title: "POS Ödemeleri"
+  # Sayfa yolu
+  nav_path: "/pos"
+  # Gerekli izin
+  permission: "pos.view"

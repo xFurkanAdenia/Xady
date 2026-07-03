@@ -1,0 +1,18 @@
+name: EventTester
+version: 1.0.0
+description: EventTester module - Tests all Xady events and generates reports.
+main: src/index.js
+api-version: 1.0.0
+author: Developer
+website: https://xady.dev
+load: SPAWN
+dependencies: []
+softDependencies: []
+loadBefore: []
+permissions: []
+commands:
+  testevent:
+    description: Test all Xady events and generate report
+    usage: /testevent
+    aliases: []
+

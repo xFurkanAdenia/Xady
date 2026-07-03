@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Xady WebPanel • API Dokümantasyonu</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --line: #334155;
+      --primary: #3b82f6;
+      --code-bg: #0b1120;
+      --code-text: #e2e8f0;
+      --accent: #10b981;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container {
+      display: flex;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .sidebar {
+      width: 250px;
+      padding: 40px 20px 40px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+    }
+    .sidebar h3 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-top: 30px;
+      margin-bottom: 10px;
+    }
+    .sidebar a {
+      display: block;
+      color: var(--text);
+      text-decoration: none;
+      padding: 6px 0;
+      font-size: 15px;
+      transition: color 0.2s;
+    }
+    .sidebar a:hover { color: var(--primary); }
+    .content {
+      flex: 1;
+      padding: 40px 0 80px 40px;
+      max-width: 850px;
+    }
+    h1 { font-size: 36px; margin-bottom: 10px; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+    h2 { font-size: 24px; margin-top: 40px; border-bottom: 1px solid var(--line); padding-bottom: 10px; color: var(--primary); }
+    h3 { font-size: 20px; margin-top: 30px; }
+    p { color: #cbd5e1; margin-bottom: 20px; }
+    
+    code {
+      font-family: "Consolas", "Monaco", monospace;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      margin-bottom: 20px;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      color: var(--code-text);
+      font-size: 14px;
+    }
+    
+    .method-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .method-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 10px;
+      font-family: monospace;
+    }
+    
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--primary);
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    th { color: var(--muted); font-weight: normal; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <aside class="sidebar">
+    <h2>Xady Docs</h2>
+    
+    <h3>Temeller</h3>
+    <a href="#giris">Nasıl Çalışır?</a>
+    <a href="#turler">Veri Türleri</a>
+    
+    <h3>API Metodları</h3>
+    <a href="#registerNav">registerNav</a>
+    <a href="#registerView">registerView</a>
+    <a href="#registerHttp">registerHttp</a>
+    <a href="#registerPermission">registerPermission</a>
+    <a href="#pushChat">pushChat</a>
+
+    <h3>REST API Rotaları</h3>
+    <a href="#api-auth">Auth / Profil</a>
+    <a href="#api-apikeys">API Key Kullanımı</a>
+    <a href="#api-chat">Sohbet (Chat)</a>
+    <a href="#api-users">Kullanıcı Yönetimi</a>
+    <a href="#api-roles">Roller / İzinler</a>
+    <a href="#api-modules">Modüller</a>
+
+    <h3>Örnekler</h3>
+    <a href="#ornek-mesaj">Butonla Chate Yazma</a>
+  </aside>
+
+  <main class="content">
+    <h1>WebPanel Modül API'si</h1>
+    <p>WebPanel modülü, Xady framework'ü içerisindeki diğer modüllerin panele kendi sayfalarını, API uç noktalarını (endpoint) ve izinlerini ekleyebilmeleri için gelişmiş bir arayüz sağlar.</p>
+
+    <h2 id="giris">Nasıl Çalışır?</h2>
+    <p>WebPanel API'sine, kendi modülünüzün <code>onEnable()</code> fonksiyonu içerisinden WebPanel modül örneğini çekerek erişebilirsiniz.</p>
+    <pre><code>const webPanel = PaymentModule.getModule&lt;WebPanelModule&gt;("WebPanel");
+const api = webPanel.webApi;</code></pre>
+    <p><strong>Not:</strong> WebPanel'in kendi modülünüzden önce yüklendiğinden emin olmak için <code>module.json</code> dosyanızda <code>"dependencies": ["WebPanel"]</code> tanımı yapmayı unutmayın.</p>
+
+    <h2 id="turler">Veri Türleri (Types)</h2>
+    <p>API'yi kullanırken bilmeniz gereken temel TypeScript türleri şunlardır:</p>
+    <pre><code>// Menü Öğesi (Sidebar)
+type NavItem = { 
+  id: string; 
+  title: string; 
+  path: string; 
+  permission?: string; 
+  scope?: "app" | "admin" 
+};
+
+// Sayfa (HTML) Görüntüleyici
+type ViewHandler = (req: IncomingMessage, ctx: HttpHandlerCtx) => Promise&lt;string&gt; | string;
+
+// Backend API Yönlendirici
+type HttpHandlerCtx = { 
+  session: { username: string; roles: string[]; permissions: string[] } | null; 
+  hasPerm: (perm: string) => boolean 
+};
+type HttpHandler = (req: IncomingMessage, res: ServerResponse, ctx?: HttpHandlerCtx) => boolean | Promise&lt;boolean&gt;;
+
+// İzin (Yetki) Tanımı
+type PermissionDef = { 
+  id: string; 
+  description: string; 
+  defaultRole?: string 
+};</code></pre>
+
+    <!-- METODLAR -->
+    <h2 id="registerNav">registerNav <span class="tag">Menü Ekleme</span></h2>
+    <div class="method-card">
+      <div class="method-name">webApi.registerNav(item: NavItem)</div>
+      <p>WebPanel'in sol menüsüne (Sidebar) yeni bir bağlantı butonu ekler.</p>
+      <pre><code>testPanel.webApi?.registerNav({
+    id: "payment_home",
+    title: "Ödeme Sistemi",
+    path: "/payment",
+    permission: "payment.view" // Bu yetkiye sahip olmayanlar menüyü göremez
+});</code></pre>
+    </div>
+
+    <h2 id="registerView">registerView <span class="tag">Sayfa (HTML) Ekleme</span></h2>
+    <div class="method-card">
+      <div class="method-name">webApi.registerView(path: string, handler: ViewHandler)</div>
+      <p>Belirtilen URL yoluna (path) girildiğinde SPA (Single Page Application) ortasına yüklenecek olan HTML içeriğini döndürür.</p>
+      <pre><code>testPanel.webApi?.registerView("/payment", async(req, ctx) => {
+    // İzin kontrolü yapabilirsiniz
+    if (!ctx.hasPerm("payment.view")) return "&lt;h1&gt;Erişim Reddedildi&lt;/h1&gt;";
+
+    return `
+        &lt;div class="card"&gt;
+            &lt;div class="card-header"&gt;&lt;div class="card-title"&gt;Ödeme&lt;/div&gt;&lt;/div&gt;
+            &lt;div class="card-body"&gt;
+                &lt;button id="testBtn"&gt;Tıkla&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    `;
+});</code></pre>
+    </div>
+
+    <h2 id="registerHttp">registerHttp <span class="tag">Backend API Ekleme</span></h2>
+    <div class="method-card">
+      <div class="method-name">webApi.registerHttp(handler: HttpHandler)</div>
+      <p>Web sunucusuna tamamen özel bir yönlendirme (HTTP Route) ekler. Frontend tarafında yazılan buton tıklamalarını (fetch) karşılamak için kullanılır.</p>
+      <p><strong>Önemli:</strong> İsteği siz karşıladıysanız <code>return true;</code> döndürmelisiniz, aksi takdirde diğer router'lara geçer.</p>
+      <pre><code>testPanel.webApi?.registerHttp(async (req, res, ctx) => {
+    const method = req.method?.toUpperCase();
+    
+    if (req.url === "/api/payment/test" && method === "POST") {
+        if (!ctx?.hasPerm("payment.use")) {
+            res.writeHead(403);
+            res.end("Yetkisiz");
+            return true;
+        }
+
+        // ... İşlemler ...
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, msg: "İşlem Başarılı" }));
+        return true; // İsteği yakaladığımızı belirtiriz
+    }
+    
+    return false; // İstek bizimle alakalı değilse false döneriz
+});</code></pre>
+    </div>
+
+    <h2 id="registerPermission">registerPermission <span class="tag">Yetki Ekleme</span></h2>
+    <div class="method-card">
+      <div class="method-name">webApi.registerPermission(perm: PermissionDef)</div>
+      <p>Sistemin veritabanına ve Admin Paneli (Roller/Kullanıcılar) kısmına yeni bir özel izin kaydeder. Yöneticiler bu izni onay kutusu (checkbox) şeklinde kullanıcılara atayabilir.</p>
+      <pre><code>testPanel.webApi?.registerPermission({
+    id: "payment.use",
+    description: "Ödeme modülünü kullanabilir"
+});</code></pre>
+    </div>
+
+    <h2 id="pushChat">pushChat <span class="tag">Sohbete Yazı Gönderme</span></h2>
+    <div class="method-card">
+      <div class="method-name">webApi.pushChat(text: string)</div>
+      <p>WebPanel'in canlı sohbet (Chat) sayfasına sunucu kaynaklı ("server" tag'i ile yeşil renkte) bir sistem mesajı düşürür.</p>
+      <pre><code>testPanel.webApi?.pushChat("Bir ödeme işlemi gerçekleştirildi!");</code></pre>
+    </div>
+
+    <!-- REST API Rotaları (Built-in) -->
+    <h1 style="margin-top: 60px;">Yerleşik (REST) API Rotaları</h1>
+    <p>WebPanel'in frontend ve backend arasındaki iletişimi sağlamak için kullandığı yerleşik HTTP rotaları. Dış modüller frontend üzerinden fetch ile bu adreslere istek atabilirler.</p>
+
+    <h2 id="api-auth">Kimlik Doğrulama & Profil (Auth)</h2>
+    <table border="1">
+      <tr><th>Metod</th><th>Endpoint</th><th>Açıklama</th></tr>
+      <tr><td>POST</td><td><code>/api/login</code></td><td>Giriş yapar. Body: <code>{ username, password }</code>. Çerez atar.</td></tr>
+      <tr><td>POST</td><td><code>/api/logout</code></td><td>Oturumu kapatır ve çerezi siler.</td></tr>
+      <tr><td>GET</td><td><code>/api/me</code></td><td>Giriş yapan kullanıcının bilgilerini (username, roles, permissions) döner.</td></tr>
+      <tr><td>PUT</td><td><code>/api/me/password</code></td><td>Şifre değiştirir. Body: <code>{ currentPassword, newPassword }</code></td></tr>
+    </table>
+
+    <h2 id="api-apikeys">Dış Uygulamalar & API Key (Yetkilendirme)</h2>
+    <p>Üçüncü parti uygulamalar (Discord botları, harici web siteleri vb.), WebPanel REST API uç noktalarına erişmek için oturum çerezleri (Cookie) yerine <strong>API Key</strong> kullanabilirler.</p>
+    <p>API Key, Yönetici Paneli üzerinden ("API Anahtarları" sekmesinden) oluşturulur. Anahtara özel olarak hangi yetkilere (örn: <code>chat.send</code>, <code>admin.users.read</code>) sahip olacağı seçilir.</p>
+    
+    <h3>API Key Nasıl Kullanılır?</h3>
+    <p>Dış uygulamanızdan istek atarken, oluşturulan API Key değerini HTTP başlıklarına (Headers) eklemeniz yeterlidir. WebPanel sunucusu, isteğin yetkisini otomatik olarak tanır ve CSRF korumasını API Key'ler için devre dışı bırakır.</p>
+    
+    <p><strong>Yöntem 1: X-API-Key Başlığı (Önerilen)</strong></p>
+    <pre><code>fetch("http://localhost:8787/api/chat", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": "xady_1234567890abcdef"
+    },
+    body: JSON.stringify({ text: "Merhaba Xady!" })
+});</code></pre>
+
+    <p><strong>Yöntem 2: Authorization Başlığı (Bearer Token)</strong></p>
+    <pre><code>fetch("http://localhost:8787/api/chat", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer xady_1234567890abcdef"
+    },
+    body: JSON.stringify({ text: "Merhaba Xady!" })
+});</code></pre>
+
+    <table border="1" style="margin-top: 20px;">
+      <tr><th>Metod</th><th>Endpoint</th><th>Açıklama</th></tr>
+      <tr><td>GET</td><td><code>/api/admin/apikeys</code></td><td>Mevcut API Key'leri listeler. <i>(İzin: admin.apikeys.read)</i></td></tr>
+      <tr><td>POST</td><td><code>/api/admin/apikeys</code></td><td>Yeni bir API Key oluşturur. Body: <code>{ description, permissions: [] }</code> <i>(İzin: admin.apikeys.write)</i></td></tr>
+      <tr><td>PUT</td><td><code>/api/admin/apikeys</code></td><td>API Key izinlerini günceller. Body: <code>{ id, description, permissions: [] }</code> <i>(İzin: admin.apikeys.write)</i></td></tr>
+      <tr><td>DELETE</td><td><code>/api/admin/apikeys</code></td><td>API Key'i siler. Body: <code>{ id }</code> <i>(İzin: admin.apikeys.write)</i></td></tr>
+    </table>
+
+    <h2 id="api-chat">Sohbet (Chat)</h2>
+    <table border="1">
+      <tr><th>Metod</th><th>Endpoint</th><th>Açıklama</th></tr>
+      <tr><td>GET</td><td><code>/api/chat/history</code></td><td>Geçmiş sohbet mesajlarını sayfalar (pagination) halinde döndürür. Parametreler: <code>?offset=0&limit=50</code> <i>(İzin: chat.view)</i></td></tr>
+      <tr><td>GET</td><td><code>/api/chat/stream</code></td><td>EventSource (SSE) kullanarak canlı sohbet akışını başlatır. Yeni mesajlar anlık olarak gelir. <i>(İzin: chat.view)</i></td></tr>
+      <tr><td>POST</td><td><code>/api/chat</code></td><td>Sohbete yeni bir mesaj yollar. Body: <code>{ text: "Mesaj" }</code> <i>(İzin: chat.send)</i></td></tr>
+    </table>
+
+    <h2 id="api-users">Kullanıcı Yönetimi (Admin)</h2>
+    <table border="1">
+      <tr><th>Metod</th><th>Endpoint</th><th>Açıklama</th></tr>
+      <tr><td>GET</td><td><code>/api/admin/users</code></td><td>Sistemdeki tüm kullanıcıları listeler. <i>(İzin: admin.users.read)</i></td></tr>
+      <tr><td>POST</td><td><code>/api/admin/users</code></td><td>Yeni kullanıcı oluşturur. Body: <code>{ username, password, roles: [] }</code> <i>(İzin: admin.users.write)</i></td></tr>
+      <tr><td>PUT</td><td><code>/api/admin/users</code></td><td>Kullanıcıyı düzenler (Şifre, roller, ban, özel izinler). Body: <code>{ username, password?, roles?: [], bannedUntil?, banReason?, customPermissions?: [] }</code> <i>(İzin: admin.users.write)</i></td></tr>
+      <tr><td>DELETE</td><td><code>/api/admin/users</code></td><td>Kullanıcıyı siler. Body: <code>{ username }</code> <i>(İzin: admin.users.write)</i></td></tr>
+    </table>
+
+    <h2 id="api-roles">Roller & İzinler (Admin)</h2>
+    <table border="1">
+      <tr><th>Metod</th><th>Endpoint</th><th>Açıklama</th></tr>
+      <tr><td>GET</td><td><code>/api/admin/roles</code></td><td>Veritabanındaki tüm rol tanımlamalarını getirir. <i>(İzin: admin.roles.read)</i></td></tr>
+      <tr><td>PUT</td><td><code>/api/admin/roles</code></td><td>Rolleri ve yetkilerini günceller. Body: <code>{ roles: { admin: { permissions: ["*"] } } }</code> <i>(İzin: admin.roles.write)</i></td></tr>
+      <tr><td>GET</td><td><code>/api/admin/permissions</code></td><td>Hem çekirdek hem de modüller tarafından kayıt edilmiş ("registerPermission") tüm yetkilerin tam listesini döner.</td></tr>
+    </table>
+
+    <h2 id="api-modules">Modüller (Admin)</h2>
+    <table border="1">
+      <tr><th>Metod</th><th>Endpoint</th><th>Açıklama</th></tr>
+      <tr><td>GET</td><td><code>/api/modules</code></td><td>Yüklü olan tüm Xady modüllerini ve durumlarını (enabled/disabled) listeler. <i>(İzin: modules.view)</i></td></tr>
+      <tr><td>POST</td><td><code>/api/modules/toggle</code></td><td>Bir modülü açar veya kapatır. Body: <code>{ name: "Payment", enabled: true/false }</code> <i>(İzin: modules.manage)</i></td></tr>
+    </table>
+
+    <h2 id="ornek-mesaj">Örnek: Butonla Chate Mesaj Yazdırma (Full Stack)</h2>
+    <p>Hem Frontend'de bir buton oluşturup hem de Backend'de bu butonu dinleyerek Minecraft / Panel sohbetine mesaj göndermenin tam örneği:</p>
+    
+    <pre><code>export default class PaymentModule extends Xady.Module {
+    onEnable() {
+        const web = PaymentModule.getModule&lt;WebPanelModule&gt;("WebPanel");
+        const client = this.getClient();
+
+        // 1. Backend API (Tıklamayı dinleyecek sunucu)
+        web.webApi?.registerHttp(async (req, res, ctx) => {
+            if (req.url === "/api/payment/send-msg" && req.method === "POST") {
+                // Sadece yetkili olanlar basabilsin
+                if (!ctx?.session) {
+                    res.writeHead(401); res.end(); return true;
+                }
+                
+                // Minecraft sunucusuna chat mesajı yolla
+                client.getBot()?.chat(`[Sistem] ${ctx.session.username} butona bastı!`);
+                
+                res.writeHead(200); res.end(JSON.stringify({ ok: true }));
+                return true;
+            }
+            return false;
+        });
+
+        // 2. Frontend HTML (Kullanıcının göreceği buton)
+        web.webApi?.registerView("/payment", async () => {
+            return `
+                &lt;div class="card"&gt;
+                    &lt;div class="card-body"&gt;
+                        &lt;button id="test-btn" class="btn btn-primary"&gt;Chate Mesaj Gönder&lt;/button&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;script&gt;
+                    // Sayfa yüklendiğinde butonu dinle
+                    document.getElementById('test-btn').addEventListener('click', async () => {
+                        try {
+                            await fetch('/api/payment/send-msg', { method: 'POST' });
+                            alert("Mesaj gönderildi!");
+                        } catch(e) {
+                            alert("Hata oluştu");
+                        }
+                    });
+                &lt;/script&gt;
+            `;
+        });
+    }
+}</code></pre>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Rol Yönetimi</div>
+        <button class="btn btn-primary" onclick="window.openRoleModal()"><i class="fa-solid fa-plus"></i> Yeni Rol</button>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <table id="roles-table">
+            <thead>
+                <tr>
+                    <th>Rol Adı</th>
+                    <th>İzin Sayısı</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="3" class="text-center">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="role-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="role-modal-title">Rol Ekle</div>
+            <button class="modal-close" onclick="window.closeRoleModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="role-modal-mode" value="create">
+            <div class="form-group">
+                <label class="form-label">Rol Adı</label>
+                <input type="text" class="form-control" id="role-name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">İzinler</label>
+                <div id="role-permissions-list" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+                    <!-- Checkboxes will be populated here -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" style="background: var(--bg-surface-hover); color: white;" onclick="window.closeRoleModal()">İptal</button>
+            <button class="btn btn-primary" onclick="window.saveRole()">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.rolesList = {};
+    window.availablePerms = [];
+
+    window.loadRoles = async function() {
+        const tbody = document.querySelector('#roles-table tbody');
+        try {
+            const [rolesRes, permsRes] = await Promise.all([
+                fetch('/api/admin/roles'),
+                fetch('/api/admin/permissions')
+            ]);
+            const rolesData = await rolesRes.json();
+            const permsData = await permsRes.json();
+            
+            if(rolesData.ok) window.rolesList = rolesData.roles || {};
+            if(permsData.ok) window.availablePerms = permsData.permissions || [];
+            
+            tbody.innerHTML = '';
+            const roleKeys = Object.keys(window.rolesList);
+            if(roleKeys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center">Rol bulunamadı.</td></tr>';
+                return;
+            }
+            
+            roleKeys.forEach(roleName => {
+                const role = window.rolesList[roleName];
+                const permCount = (role.permissions || []).length;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${roleName}</td>
+                    <td><span class="badge primary">${permCount} izin</span></td>
+                    <td>
+                        <button class="btn btn-sm" style="background: var(--bg-surface-hover); color: white;" onclick="window.editRole('${roleName}')"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="window.deleteRole('${roleName}')"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Hata oluştu.</td></tr>';
+        }
+    };
+
+    window.populatePerms = function(selectedPerms = []) {
+        const container = document.getElementById('role-permissions-list');
+        container.innerHTML = '';
+        window.availablePerms.forEach(p => {
+            const checked = selectedPerms.includes(p.id) || selectedPerms.includes('*') ? 'checked' : '';
+            const div = document.createElement('div');
+            div.style.marginBottom = '5px';
+            div.innerHTML = `
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" value="${p.id}" class="perm-cb" ${checked}>
+                    <span>${p.id} <small class="text-muted">(${p.description})</small></span>
+                </label>
+            `;
+            container.appendChild(div);
+        });
+    };
+
+    window.openRoleModal = function() {
+        document.getElementById('role-modal-title').textContent = 'Rol Ekle';
+        document.getElementById('role-modal-mode').value = 'create';
+        document.getElementById('role-name').value = '';
+        document.getElementById('role-name').disabled = false;
+        window.populatePerms([]);
+        document.getElementById('role-modal').classList.add('show');
+    };
+
+    window.editRole = function(roleName) {
+        const role = window.rolesList[roleName];
+        if(!role) return;
+        document.getElementById('role-modal-title').textContent = 'Rol Düzenle: ' + roleName;
+        document.getElementById('role-modal-mode').value = 'edit';
+        document.getElementById('role-name').value = roleName;
+        document.getElementById('role-name').disabled = true;
+        window.populatePerms(role.permissions || []);
+        document.getElementById('role-modal').classList.add('show');
+    };
+
+    window.closeRoleModal = function() {
+        document.getElementById('role-modal').classList.remove('show');
+    };
+
+    window.saveRole = async function() {
+        const roleName = document.getElementById('role-name').value.trim();
+        if(!roleName) return alert('Rol adı gerekli.');
+        
+        const checkboxes = document.querySelectorAll('.perm-cb:checked');
+        const selectedPerms = Array.from(checkboxes).map(cb => cb.value);
+        
+        const newRolesList = { ...window.rolesList };
+        newRolesList[roleName] = { permissions: selectedPerms };
+        
+        try {
+            const res = await fetch('/api/admin/roles', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roles: newRolesList })
+            });
+            const data = await res.json();
+            if(data.ok) {
+                window.closeRoleModal();
+                window.loadRoles();
+            } else {
+                alert('Hata: İşlem başarısız.');
+            }
+        } catch(e) {
+            alert('Bağlantı hatası.');
+        }
+    };
+
+    window.deleteRole = async function(roleName) {
+        if(!confirm(roleName + ' rolünü silmek istediğinize emin misiniz?')) return;
+        
+        const newRolesList = { ...window.rolesList };
+        delete newRolesList[roleName];
+        
+        try {
+            const res = await fetch('/api/admin/roles', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roles: newRolesList })
+            });
+            const data = await res.json();
+            if(data.ok) {
+                window.loadRoles();
+            } else {
+                alert('Hata: Silinemedi.');
+            }
+        } catch(e) {
+            alert('Bağlantı hatası.');
+        }
+    };
+
+    window.loadRoles();
+</script>

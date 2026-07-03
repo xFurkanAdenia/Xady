@@ -1,0 +1,260 @@
+<div class="card" style="display: flex; flex-direction: column; height: 70vh;">
+    <div class="card-header">
+        <div class="card-title">Sohbet</div>
+    </div>
+    <div class="card-body" style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0;">
+        <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; padding: 15px; font-family: monospace; background: var(--bg-base); font-size: 14px;">
+            <div id="chat-loading" style="text-align: center; color: var(--text-muted); display: none; margin-bottom: 10px;">Geçmiş yükleniyor...</div>
+            <div id="chat-content"></div>
+        </div>
+        {{SEND_HTML}}
+    </div>
+</div>
+<script>
+(() => {
+    if(window.chatEvt) {
+        window.chatEvt.close();
+        window.chatEvt = null;
+    }
+    
+    const msgBox = document.getElementById('chat-messages');
+    const contentBox = document.getElementById('chat-content');
+    const loadingEl = document.getElementById('chat-loading');
+    
+    let chatOffset = 0;
+    const chatLimit = 50;
+    let hasMoreHistory = true;
+    let isFetchingHistory = false;
+    let initialLoad = true;
+    
+    function createMessageElement(data) {
+        const div = document.createElement('div');
+        div.style.marginBottom = '4px';
+        div.style.wordBreak = 'break-word';
+        
+        const d = new Date(data.at);
+        const time = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+        
+        let contentHtml = data.text;
+        
+        if(data.source !== 'bot') {
+             contentHtml = String(data.text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+             let color = 'var(--text-main)';
+             if(data.source === 'server') color = 'var(--success)';
+             contentHtml = `<span style="color: ${color}">${contentHtml}</span>`;
+        }
+
+        div.innerHTML = `<span style="color: var(--text-muted)">[${time}]</span> <span style="color: white">${contentHtml}</span>`;
+        return div;
+    }
+
+    async function loadChatHistory() {
+        if(isFetchingHistory || !hasMoreHistory) return;
+        isFetchingHistory = true;
+        loadingEl.style.display = 'block';
+        
+        try {
+            const res = await fetch(`/api/chat/history?offset=${chatOffset}&limit=${chatLimit}`);
+            const data = await res.json();
+            
+            if(data.ok && Array.isArray(data.messages)) {
+                if(data.messages.length < chatLimit) {
+                    hasMoreHistory = false;
+                }
+                
+                const oldScrollHeight = msgBox.scrollHeight;
+                
+                const fragment = document.createDocumentFragment();
+                data.messages.forEach(msg => {
+                    fragment.appendChild(createMessageElement(msg));
+                });
+                
+                contentBox.insertBefore(fragment, contentBox.firstChild);
+                chatOffset += data.messages.length;
+                
+                if(initialLoad) {
+                    msgBox.scrollTop = msgBox.scrollHeight;
+                    initialLoad = false;
+                } else {
+                    msgBox.scrollTop = msgBox.scrollHeight - oldScrollHeight;
+                }
+            } else {
+                hasMoreHistory = false;
+            }
+        } catch(e) {
+            console.error(e);
+        } finally {
+            loadingEl.style.display = 'none';
+            isFetchingHistory = false;
+        }
+    }
+    
+    msgBox.addEventListener('scroll', () => {
+        if(msgBox.scrollTop === 0) {
+            loadChatHistory();
+        }
+    });
+
+    loadChatHistory();
+
+    window.chatEvt = new EventSource('/api/chat/stream');
+    window.chatEvt.addEventListener('msg', (e) => {
+        const data = JSON.parse(e.data);
+        const isScrolledToBottom = msgBox.scrollHeight - msgBox.clientHeight <= msgBox.scrollTop + 10;
+        
+        contentBox.appendChild(createMessageElement(data));
+        
+        if (isScrolledToBottom || initialLoad) {
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+        
+        chatOffset += 1;
+    });
+
+    window.sendChat = async function() {
+        const inp = document.getElementById('chat-input');
+        if(!inp) return;
+        const text = inp.value.trim();
+        if(!text) return;
+        
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const data = await res.json();
+            if(data.ok) {
+                inp.value = '';
+                document.getElementById('chat-autocomplete').style.display = 'none';
+            } else {
+                if (typeof window.showToast === 'function') window.showToast(data.error || 'Yetkiniz yok.', 'danger');
+            }
+        } catch(e) {
+            if (typeof window.showToast === 'function') {
+                window.showToast('Gönderilemedi.', 'danger');
+            } else {
+                alert('Gönderilemedi.');
+            }
+        }
+    };
+
+    // Auto-complete logic
+    let acIndex = -1;
+    let acItems = [];
+
+    window.handleChatInput = async function(e) {
+        const inp = e.target;
+        const val = inp.value;
+        const acBox = document.getElementById('chat-autocomplete');
+        if (!acBox) return;
+
+        if (val.startsWith('/') || val.startsWith('!')) {
+            try {
+                const res = await fetch('/api/chat/autocomplete?q=' + encodeURIComponent(val));
+                const data = await res.json();
+                if (data.ok && data.matches && data.matches.length > 0) {
+                    acItems = data.matches;
+                    acIndex = -1;
+                    renderAcBox();
+                } else {
+                    acBox.style.display = 'none';
+                }
+            } catch(e) {
+                acBox.style.display = 'none';
+            }
+        } else {
+            acBox.style.display = 'none';
+        }
+    };
+
+    function applyAutocomplete(item) {
+        const inp = document.getElementById('chat-input');
+        const parts = inp.value.split(' ');
+        let replacement = item;
+        
+        // Eğer komutun ilk kelimesiyse ve baştaki slash yoksa onu ekleyelim
+        if (parts.length === 1 && inp.value.startsWith('/')) {
+            if (!replacement.startsWith('/')) {
+                replacement = '/' + replacement;
+            }
+        }
+        
+        parts[parts.length - 1] = replacement;
+        inp.value = parts.join(' ') + ' ';
+        
+        const acBox = document.getElementById('chat-autocomplete');
+        if (acBox) acBox.style.display = 'none';
+        
+        inp.focus();
+        inp.dispatchEvent(new Event('input'));
+    }
+
+    window.handleChatKey = function(e) {
+        const acBox = document.getElementById('chat-autocomplete');
+        if (!acBox || acBox.style.display === 'none') {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.sendChat();
+            }
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            acIndex = (acIndex + 1) % acItems.length;
+            renderAcBox();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            acIndex = (acIndex - 1 + acItems.length) % acItems.length;
+            renderAcBox();
+        } else if (e.key === 'Tab') {
+            e.preventDefault();
+            if (acIndex === -1 && acItems.length > 0) {
+                acIndex = 0; // Tab'a basılınca eğer hiçbir şey seçili değilse ilkini seç
+            }
+            if (acIndex >= 0 && acIndex < acItems.length) {
+                applyAutocomplete(acItems[acIndex]);
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (acIndex >= 0 && acIndex < acItems.length) {
+                applyAutocomplete(acItems[acIndex]);
+            } else {
+                window.sendChat();
+            }
+        } else if (e.key === 'Escape') {
+            acBox.style.display = 'none';
+        }
+    };
+
+    function renderAcBox() {
+        const acBox = document.getElementById('chat-autocomplete');
+        acBox.innerHTML = '';
+        acItems.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.style.padding = '8px 15px';
+            div.style.cursor = 'pointer';
+            div.style.borderBottom = '1px solid var(--border)';
+            if (idx === acIndex) {
+                div.style.background = 'var(--primary)';
+                div.style.color = '#fff';
+            } else {
+                div.style.color = 'var(--text-main)';
+            }
+            div.textContent = item;
+            
+            div.onmouseover = () => {
+                acIndex = idx;
+                renderAcBox();
+            };
+            div.onmousedown = (e) => {
+                e.preventDefault(); // Input'tan focus'un kaybolmasını engelle
+                applyAutocomplete(item);
+            };
+            acBox.appendChild(div);
+        });
+        acBox.style.display = 'block';
+    }
+})();
+</script>

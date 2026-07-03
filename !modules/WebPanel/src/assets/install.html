@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kurulum • Xady Panel</title>
+  <link rel="stylesheet" href="/assets/install.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="brand">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M12 7.5v6.5" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 17.7h.01" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-text">Sistem Kurulumu</div>
+          <div class="sub">Veritabanı ve yönetici yapılandırması</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="sec">
+          <h2>Site</h2>
+          <div class="input-group">
+            <label>Site Adı</label>
+            <input id="siteTitle" placeholder="Xady Panel" />
+          </div>
+        </div>
+
+        <div class="sec">
+          <h2>Veritabanı (MySQL)</h2>
+          <div class="input-group">
+            <label>Sunucu (Host)</label>
+            <input id="dbHost" placeholder="127.0.0.1" />
+          </div>
+          <div class="row2">
+            <div class="input-group">
+              <label>Port</label>
+              <input id="dbPort" placeholder="3306" />
+            </div>
+            <div class="input-group">
+              <label>Veritabanı</label>
+              <input id="dbName" placeholder="xady" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Kullanıcı (User)</label>
+            <input id="dbUser" placeholder="root" />
+          </div>
+          <div class="input-group">
+            <label>Şifre (Password)</label>
+            <input id="dbPass" type="password" />
+          </div>
+        </div>
+
+        <div class="sec">
+          <h2>Yönetici (Admin)</h2>
+          <div class="input-group">
+            <label>Kullanıcı Adı</label>
+            <input id="adminUser" placeholder="admin" />
+          </div>
+          <div class="input-group">
+            <label>Şifre</label>
+            <input id="adminPass" type="password" />
+          </div>
+        </div>
+      </div>
+
+      <button id="install">Kurulumu Tamamla</button>
+      <div class="err" id="err"></div>
+      <div class="ok" id="ok"></div>
+    </div>
+  </div>
+  <script>
+    const btn = document.getElementById("install");
+    const errDiv = document.getElementById("err");
+    const okDiv = document.getElementById("ok");
+
+    async function doInstall() {
+      const siteTitle = document.getElementById("siteTitle").value.trim();
+      const dbHost = document.getElementById("dbHost").value.trim();
+      const dbPort = Number(document.getElementById("dbPort").value) || 3306;
+      const dbName = document.getElementById("dbName").value.trim();
+      const dbUser = document.getElementById("dbUser").value.trim();
+      const dbPass = document.getElementById("dbPass").value;
+      const adminUser = document.getElementById("adminUser").value.trim();
+      const adminPass = document.getElementById("adminPass").value;
+
+      if (!dbHost || !dbUser || !dbName || !adminPass) {
+        errDiv.innerText = "Kırmızı alanlar ve admin şifresi zorunludur.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = "Kuruluyor...";
+      errDiv.innerText = "";
+      okDiv.innerText = "";
+
+      try {
+        const res = await fetch("/api/install", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            site: { title: siteTitle },
+            db: { host: dbHost, port: dbPort, user: dbUser, password: dbPass, database: dbName },
+            admin: { username: adminUser, password: adminPass }
+          })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          okDiv.innerText = "Kurulum başarılı! 3 saniye içinde yönlendiriliyorsunuz...";
+          setTimeout(() => { window.location.href = "/login"; }, 3000);
+        } else {
+          errDiv.innerText = "Hata: " + (data.error || "Kurulum başarısız oldu.");
+          btn.disabled = false;
+          btn.innerText = "Kurulumu Tamamla";
+        }
+      } catch (e) {
+        errDiv.innerText = "Bağlantı hatası oluştu.";
+        btn.disabled = false;
+        btn.innerText = "Kurulumu Tamamla";
+      }
+    }
+
+    btn.addEventListener("click", doInstall);
+    // Bind Enter key press to submit
+    const inputs = document.querySelectorAll("input");
+    inputs.forEach((input, index) => {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          if (index < inputs.length - 1) {
+            inputs[index + 1].focus();
+          } else {
+            doInstall();
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

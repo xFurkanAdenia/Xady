@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "xady/*": ["./src/*"],
+      "minecraft-protocol": ["./scripts/mock-types.d.ts"],
+      "vec3": ["./scripts/mock-types.d.ts"],
+      "prismarine-item": ["./scripts/mock-types.d.ts"],
+      "prismarine-windows": ["./scripts/mock-types.d.ts"],
+      "prismarine-recipe": ["./scripts/mock-types.d.ts"],
+      "prismarine-block": ["./scripts/mock-types.d.ts"],
+      "prismarine-entity": ["./scripts/mock-types.d.ts"],
+      "prismarine-chat": ["./scripts/mock-types.d.ts"],
+      "prismarine-world": ["./scripts/mock-types.d.ts"],
+      "prismarine-registry": ["./scripts/mock-types.d.ts"],
+      "minecraft-data": ["./scripts/mock-types.d.ts"],
+      "protodef": ["./scripts/mock-types.d.ts"],
+      "typed-emitter": ["./scripts/mock-types.d.ts"]
+    },
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2024", "ESNext.Iterator"],
+
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "declaration": true,
+    "declarationDir": "./dist/typings",
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

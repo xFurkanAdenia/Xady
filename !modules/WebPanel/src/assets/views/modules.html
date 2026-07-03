@@ -1,0 +1,72 @@
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Modüller</div>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <table id="modules-table">
+            <thead>
+                <tr>
+                    <th>Modül Adı</th>
+                    <th>Sürüm</th>
+                    <th>Durum</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="3" class="text-center">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    window.loadModules = async function() {
+        const tbody = document.querySelector('#modules-table tbody');
+        try {
+            const res = await fetch('/api/modules');
+            const data = await res.json();
+            if(data.ok) {
+                tbody.innerHTML = '';
+                if(data.modules.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">Modül bulunamadı.</td></tr>';
+                    return;
+                }
+                data.modules.forEach(m => {
+                    const checked = m.enabled ? 'checked' : '';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${m.name}</td>
+                        <td>${m.version || '-'}</td>
+                        <td>
+                            <label class="switch">
+                                <input type="checkbox" onchange="window.toggleModule('${m.name}', this.checked)" ${checked}>
+                                <span class="slider"></span>
+                            </label>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Hata oluştu.</td></tr>';
+        }
+    };
+
+    window.toggleModule = async function(name, enabled) {
+        try {
+            const res = await fetch('/api/modules/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, enabled })
+            });
+            const data = await res.json();
+            if(!data.ok) {
+                alert('Modül durumu değiştirilemedi.');
+                window.loadModules();
+            }
+        } catch(e) {
+            alert('Bağlantı hatası.');
+            window.loadModules();
+        }
+    };
+
+    window.loadModules();
+</script>

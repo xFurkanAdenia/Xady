@@ -1,0 +1,6 @@
+name: Payment
+description: Advanced in-game payment module.
+version: 1.0.0
+main: index.js
+dependencies:
+  - WebPanel

@@ -1,0 +1,6 @@
+# HelloWorldX Konfigürasyon Dosyası
+# Bu dosya modül ilk yüklendiğinde otomatik olarak dist/modules/HelloWorldX/config.yml klasörüne çıkartılır.
+
+mesaj: "Merhaba, Xady dünyasına hoş geldin! Bu mesaj config.yml'den geliyor."
+ozellik_aktif: true
+sayi_degeri: 42

@@ -1,0 +1,81 @@
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">
+        <div class="card-title">Ayarlar</div>
+    </div>
+    <div class="card-body">
+        <div id="settings-container">Yükleniyor...</div>
+        {{BUTTON_HTML}}
+    </div>
+</div>
+<script>
+    window.settingsConfig = {};
+    window.loadSettings = async function() {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            if(data.ok) {
+                window.settingsConfig = data.config;
+                let html = '';
+                // Bot Ayarları
+                html += '<h4 style="margin: 15px 0 10px;">Bot Ayarları</h4>';
+                html += '<div class="form-group"><label class="form-label">Kullanıcı Adı</label><input type="text" class="form-control" id="st-bot-username" value="' + (data.config.bot?.username || '') + '"></div>';
+                html += '<div class="form-group"><label class="form-label">Sunucu IP</label><input type="text" class="form-control" id="st-bot-host" value="' + (data.config.bot?.host || '') + '"></div>';
+                html += '<div class="form-group"><label class="form-label">Sunucu Port</label><input type="number" class="form-control" id="st-bot-port" value="' + (data.config.bot?.port || 25565) + '"></div>';
+                html += '<div class="form-group"><label class="form-label">Oyun Sürümü</label><input type="text" class="form-control" id="st-bot-version" value="' + (data.config.bot?.version || '1.16.5') + '"></div>';
+                html += '<div class="form-group"><label class="form-label">Yeniden Bağlanma Süresi (ms)</label><input type="number" class="form-control" id="st-bot-reconnectDelay" value="' + (data.config.bot?.reconnectDelay || 5000) + '"></div>';
+                html += '<div class="form-group"><label class="form-label">Maksimum Bağlanma Denemesi (-1: Sınırsız)</label><input type="number" class="form-control" id="st-bot-maxReconnectAttempts" value="' + (data.config.bot?.maxReconnectAttempts ?? 10) + '"></div>';
+                
+                // CLI Ayarları
+                html += '<h4 style="margin: 20px 0 10px;">CLI Ayarları</h4>';
+                html += '<div class="form-group"><label class="form-label">Terminal Prompt</label><input type="text" class="form-control" id="st-cli-prompt" value="' + (data.config.cli?.prompt || '') + '"></div>';
+                
+                document.getElementById('settings-container').innerHTML = html;
+            } else {
+                document.getElementById('settings-container').innerHTML = '<span class="text-danger">Yetkiniz yok veya ayarlar alınamadı.</span>';
+            }
+        } catch(e) {
+            document.getElementById('settings-container').innerHTML = '<span class="text-danger">Bağlantı hatası.</span>';
+        }
+    };
+    
+    window.saveSettings = async function() {
+        const updates = [
+            { keyPath: 'bot.username', value: document.getElementById('st-bot-username').value },
+            { keyPath: 'bot.host', value: document.getElementById('st-bot-host').value },
+            { keyPath: 'bot.port', value: Number(document.getElementById('st-bot-port').value) },
+            { keyPath: 'bot.version', value: document.getElementById('st-bot-version').value },
+            { keyPath: 'bot.reconnectDelay', value: Number(document.getElementById('st-bot-reconnectDelay').value) },
+            { keyPath: 'bot.maxReconnectAttempts', value: Number(document.getElementById('st-bot-maxReconnectAttempts').value) },
+            { keyPath: 'cli.prompt', value: document.getElementById('st-cli-prompt').value }
+        ];
+        try {
+            const res = await fetch('/api/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updates })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Ayarlar başarıyla kaydedildi! ' + (data.note || ''));
+                } else {
+                    alert('Ayarlar başarıyla kaydedildi! ' + (data.note || ''));
+                }
+            } else {
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Kaydetme başarısız.', 'danger');
+                } else {
+                    alert('Kaydetme başarısız.');
+                }
+            }
+        } catch (e) {
+            if (typeof window.showToast === 'function') {
+                window.showToast('Bağlantı hatası.', 'danger');
+            } else {
+                alert('Bağlantı hatası.');
+            }
+        }
+    };
+
+    window.loadSettings();
+</script>

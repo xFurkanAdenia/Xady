@@ -1,0 +1,148 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                        XADY DOCUMENTATION PREVIEW                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────┬───────────────────────────────────────────────────────┐
+│                     │                                                       │
+│   ┌─────────┐       │  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓    │
+│   │  Xady   │       │  ┃  Xady Framework                              ┃    │
+│   │ v1.0.0  │       │  ┃  Minecraft botları için profesyonel          ┃    │
+│   └─────────┘       │  ┃  modül framework'ü                           ┃    │
+│                     │  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛    │
+│  Başlangıç          │                                                       │
+│  ├─ Giriş           │  ╭───────╮  ╭───────╮  ╭───────╮  ╭───────╮         │
+│  ├─ Kurulum         │  │  📦   │  │  ⚡   │  │  🎯   │  │  🔌   │         │
+│  └─ Hızlı Başlangıç │  │Modül  │  │Event  │  │Command│  │Service│         │
+│                     │  │Sistemi│  │System │  │  API  │  │System │         │
+│  Modül Sistemi      │  ╰───────╯  ╰───────╯  ╰───────╯  ╰───────╯         │
+│  ├─ Modül Temelleri │                                                       │
+│  ├─ Yaşam Döngüsü   │  ─────────────────────────────────────────────────  │
+│  └─ module.yml      │                                                       │
+│                     │  Hızlı Başlangıç                                      │
+│  Event System       │                                                       │
+│  ├─ Event Temelleri │  ┌───────────────────────────────────┐               │
+│  ├─ Listener        │  │ export default class MyModule     │ [Kopyala]    │
+│  └─ Priority        │  │   extends Xady.Module {           │               │
+│                     │  │   onEnable() {                    │               │
+│  Command System     │  │     this.getLogger().info("Hi!"); │               │
+│  ├─ Komut Temelleri │  │   }                               │               │
+│  └─ Executor        │  │ }                                 │               │
+│                     │  └───────────────────────────────────┘               │
+│  Chat Patterns      │                                                       │
+│  ├─ Pattern Match   │  ─────────────────────────────────────────────────  │
+│  └─ Örnekler        │                                                       │
+│                     │  Event Sistemi                                        │
+│  API Reference      │                                                       │
+│  ├─ Module Class    │  ╔════════════════════════════════════════╗          │
+│  ├─ Event System    │  ║ @Xady.EventHandler decorator           ║          │
+│  └─ Command System  │  ║ Priority: LOWEST → MONITOR             ║          │
+│                     │  ╚════════════════════════════════════════╝          │
+│                     │                                                       │
+│                     │  ┌───────────────────────────────────┐               │
+│                     │  │ @Xady.EventHandler(               │ [Kopyala]    │
+│                     │  │   Xady.EventPriority.NORMAL       │               │
+│                     │  │ )                                 │               │
+│                     │  │ onMessage(event: any) {           │               │
+│                     │  │   const msg = event.getMessage(); │               │
+│                     │  │   console.log("Chat:", msg);      │               │
+│                     │  │ }                                 │               │
+│                     │  └───────────────────────────────────┘               │
+│                     │                                                       │
+│                     │  ─────────────────────────────────────────────────  │
+│                     │                                                       │
+│                     │  Chat Pattern Matching                                │
+│                     │                                                       │
+│                     │  Sunucudan gelen mesajları regex ile yakalayın:      │
+│                     │                                                       │
+│                     │  ┌───────────────────────────────────┐               │
+│                     │  │ const match = msg.match(          │ [Kopyala]    │
+│                     │  │   /You earned (\d+) coins?/       │               │
+│                     │  │ );                                │               │
+│                     │  │ if (match) {                      │               │
+│                     │  │   const amt = parseInt(match[1]); │               │
+│                     │  │   console.log(`+${amt} coin!`);   │               │
+│                     │  │ }                                 │               │
+│                     │  └───────────────────────────────────┘               │
+│                     │                                                       │
+│                     │  ─────────────────────────────────────────────────  │
+│                     │                                                       │
+│                     │  Module API Reference                                 │
+│                     │                                                       │
+│                     │  ╭──────────────────────────────────────────────╮    │
+│                     │  │ getServer()                                  │    │
+│                     │  │ Mineflayer bot instance döndürür             │    │
+│                     │  │                                              │    │
+│                     │  │  const bot = this.getServer();               │    │
+│                     │  │  bot.chat("Hello!");                         │    │
+│                     │  ╰──────────────────────────────────────────────╯    │
+│                     │                                                       │
+│                     │  ╭──────────────────────────────────────────────╮    │
+│                     │  │ getCommand(name: string)                     │    │
+│                     │  │ module.yml'deki komutu döndürür              │    │
+│                     │  │                                              │    │
+│                     │  │  const cmd = this.getCommand("test");        │    │
+│                     │  │  if (cmd) cmd.setExecutor({...});            │    │
+│                     │  ╰──────────────────────────────────────────────╯    │
+│                     │                                                       │
+│                     │                                                       │
+│                     │                                                       │
+│                     │  ──────────────────────────────────────────────────  │
+│                     │  Xady Framework © 2026                                │
+│                     │                                                       │
+└─────────────────────┴───────────────────────────────────────────────────────┘
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                              ÖZELLİKLER                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+ ✅ Sade ve şık GitBook-benzeri tasarım
+ ✅ Sol sidebar ile kolay navigasyon
+ ✅ Smooth scroll geçişler
+ ✅ Kod kopyalama butonu (her blokta)
+ ✅ Active link highlight (scroll'a göre)
+ ✅ Responsive tasarım (mobil uyumlu)
+ ✅ 15+ kapsamlı bölüm
+ ✅ 25+ çalışır kod örneği
+ ✅ Chat pattern rehberi (regex)
+ ✅ API reference (12+ metod)
+ ✅ Info/success box'ları
+ ✅ Feature grid layout
+ ✅ Custom scrollbar
+ ✅ Zero external dependencies
+ ✅ Production-ready
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                           NASIL GÖRÜNTÜLENIR?                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+ [1] Tarayıcıda Aç:
+     
+     start docs/index.html
+
+ [2] Yerel Sunucu (Önerilen):
+     
+     cd docs
+     python -m http.server 8000
+     # http://localhost:8000
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                              DOSYALAR                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+ 📄 docs/index.html     - Ana dokümantasyon (eksiksiz)
+ 🎨 docs/style.css      - GitBook-benzeri sade tema
+ ⚡ docs/script.js      - Smooth scroll + kod kopyalama
+ 📖 docs/README.md      - Kullanım rehberi
+ ✨ docs/FEATURES.md    - Özellik listesi
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                              RENK PALETİ                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+ 🔵 Primary:         #2563eb (Mavi)
+ ⚪ Background:      #ffffff (Beyaz)
+ ⚫ Text:            #1e293b (Koyu Gri)
+ ⬜ Border:          #e2e8f0 (Açık Gri)
+ 🟦 Code BG:         #f1f5f9 (Çok Açık Gri)
+ 🟢 Success:         #16a34a (Yeşil)
+

@@ -1,0 +1,13 @@
+name: DemoModule
+version: 1.0.0
+main: index.ts
+description: Tüm Xady özelliklerini gösteren demo modül
+author: Xady Team
+api-version: "1.0"
+commands:
+  demo:
+    description: Demo komutu
+    usage: /demo
+  test:
+    description: Test komutu  
+    usage: /test

@@ -1,0 +1,14 @@
+src\classes\FileConfiguration.ts:14:    load() {
+src\classes\ModuleManager.ts:129:                return originalLoad(module, filename);
+src\classes\ModuleManager.ts:437:                // onLoad() - Spigot API
+src\classes\ModuleManager.ts:440:                        moduleInstance.onLoad();
+src\classes\SettingsManager.ts:122:    this.#config = this.load();
+src\classes\SettingsManager.ts:126:  load(): XadyConfig {
+src\classes\SettingsManager.ts:189:    this.#config = this.load();
+src\models\BaseModule.ts:64:    onLoad(): void { }
+src\models\BaseModule.ts:290:            this._config.load();
+src\classes\ModuleManager.ts:340:                delete require.cache[mainPath];
+src\functions\bot\loadCommands.ts:44:                    delete require.cache[filePath];
+src\functions\bot\loadCommands.ts:88:            delete require.cache[require.resolve(filePath)];
+src\functions\bot\loadEvents.ts:41:                    delete require.cache[filePath];
+src\functions\bot\loadEvents.ts:84:            delete require.cache[require.resolve(filePath)];

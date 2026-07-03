@@ -1,0 +1,61 @@
+{
+  "bot": {
+    "username": "Xady",
+    "host": "play.melonya.net",
+    "port": 25565,
+    "version": "1.20.4",
+    "reconnectDelay": 5000,
+    "maxReconnectAttempts": 10,
+    "proxy": {
+      "enabled": false,
+      "type": "socks5",
+      "host": "127.0.0.1",
+      "port": 1080,
+      "username": "",
+      "password": ""
+    }
+  },
+  "cli": {
+    "prompt": "Xady => "
+  },
+  "performance": {
+    "enabled": true,
+    "maxWorkers": 2,
+    "cpuAffinity": "all"
+  },
+  "modules": {
+    "disabled": [
+      "Melonya",
+      "WebPanel"
+    ]
+  },
+  "web": {
+    "siteTitle": "Xady",
+    "installed": true
+  },
+  "auth": {
+    "db": {
+      "enabled": true,
+      "host": "213.146.184.121",
+      "port": 3306,
+      "user": "root",
+      "password": "C2mpB9zibZQVxWFBsIxxv3PRF6CzdfXbOXAt",
+      "database": "xady_db"
+    },
+    "roles": {
+      "admin": {
+        "permissions": [
+          "*"
+        ]
+      },
+      "user": {
+        "permissions": [
+          "dashboard.view",
+          "chat.view",
+          "chat.send",
+          "settings.view"
+        ]
+      }
+    }
+  }
+}

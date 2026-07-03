@@ -1,0 +1,6 @@
+name: WebPos
+description: Web-based Point of Sale (POS) payment module integrated with WebPanel.
+version: 1.0.0
+main: index.js
+dependencies:
+  - WebPanel

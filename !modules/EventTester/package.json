@@ -1,0 +1,13 @@
+{
+    "name": "eventtester",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "compile": "xext --compile --out dist",
+        "test": "xext --test-syntax"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    }
+}

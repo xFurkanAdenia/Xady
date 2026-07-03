@@ -1,0 +1,20 @@
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Payment Test</div>
+    </div>
+    <div class="card-body">
+        <h1>Hello World!</h1>
+        <p>Bu sayfa Payment modülü tarafından dinamik olarak oluşturulmuştur.</p>
+        <button id="pay-btn" class="btn btn-primary mt-3">Ödeme Yap</button>
+    </div>
+</div>
+
+<script>
+    document.getElementById("pay-btn").addEventListener("click", async () => {
+        if (typeof window.sendChatMessage === 'function') {
+            window.sendChatMessage("💰 Ödeme başarıyla başlatıldı! (Payment Modülü)");
+        } else {
+            alert("Ödeme fonksiyonu bulunamadı!");
+        }
+    });
+</script>

@@ -1,0 +1,2 @@
+Bu bir test dosyasidir.
+Eger bu yaziyi konsolda goruyorsan, getResource() fonksiyonu .xext arşivi içinden bu dosyayı başarıyla okumuş demektir!

@@ -1,0 +1,54 @@
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">
+        <div class="card-title">Profilim</div>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label class="form-label">Kullanıcı Adı</label>
+            <input type="text" class="form-control" value="{{USERNAME}}" disabled>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Rolleriniz</label>
+            <div style="margin-top: 5px;">
+                {{ROLES_HTML}}
+            </div>
+        </div>
+        
+        <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
+        <h4 style="margin-bottom: 15px;">Şifre Değiştir</h4>
+        <div class="form-group">
+            <label class="form-label">Mevcut Şifre</label>
+            <input type="password" class="form-control" id="profile-current-pw">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Yeni Şifre</label>
+            <input type="password" class="form-control" id="profile-new-pw">
+        </div>
+        <button class="btn btn-primary" onclick="window.changePassword()">Şifreyi Güncelle</button>
+    </div>
+</div>
+<script>
+    window.changePassword = async function() {
+        const currentPassword = document.getElementById('profile-current-pw').value;
+        const newPassword = document.getElementById('profile-new-pw').value;
+        if(!currentPassword || !newPassword) return alert('Lütfen tüm alanları doldurun.');
+        
+        try {
+            const res = await fetch('/api/me/password', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentPassword, newPassword })
+            });
+            const data = await res.json();
+            if(data.ok) {
+                alert('Şifreniz başarıyla güncellendi.');
+                document.getElementById('profile-current-pw').value = '';
+                document.getElementById('profile-new-pw').value = '';
+            } else {
+                alert('Hata: ' + (data.error || 'Şifre güncellenemedi.'));
+            }
+        } catch(e) {
+            alert('Bağlantı hatası.');
+        }
+    };
+</script>

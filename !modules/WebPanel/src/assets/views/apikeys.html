@@ -1,0 +1,270 @@
+<div class="card">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="card-title">API Key Yönetimi</div>
+        <button class="btn" onclick="openApiKeyModal()">+ Yeni API Key</button>
+    </div>
+    <div class="card-body">
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Dış uygulamaların (botlar, entegrasyonlar) Xady API'sine erişmesi için yetkilendirilmiş API anahtarları oluşturabilirsiniz.</p>
+        
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Açıklama</th>
+                    <th>API Key</th>
+                    <th>Yetkiler</th>
+                    <th>Oluşturulma</th>
+                    <th style="text-align: right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="apikey-table-body">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="apikey-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title" id="apikey-modal-title">Yeni API Key</div>
+            <button class="modal-close" onclick="closeApiKeyModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="apikey-id" />
+            
+            <div class="form-group" id="apikey-display-group" style="display: none;">
+                <label>API Key (Kaydetmeden önce kopyalayın!)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" class="form-control" id="apikey-new-value" readonly style="font-family: monospace;" />
+                    <button class="btn" onclick="copyNewApiKey()"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
+
+            <div id="apikey-form-inputs">
+                <div class="form-group">
+                    <label>Açıklama / İsim</label>
+                    <input type="text" class="form-control" id="apikey-desc" placeholder="Örn: Discord Botu İçin" />
+                </div>
+
+                <div class="form-group">
+                    <label>API Key İzinleri</label>
+                    <div class="permissions-list" id="apikey-perms-list" style="max-height: 200px; overflow-y: auto; background: var(--bg-base); padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                        Yükleniyor...
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%" id="apikey-save-btn" onclick="saveApiKey()">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allPermissions = [];
+    
+    function openConfirmModal(message, onConfirm) {
+        window.showModal('Emin misiniz?', message, onConfirm, 'Evet, Sil', 'danger');
+    }
+    
+    function closeConfirmModal() {
+        window.closeModal();
+    }
+
+    window.toggleApiKeyVisibility = function(id, key) {
+        const el = document.getElementById('apikey-display-' + id);
+        const icon = document.getElementById('apikey-icon-' + id);
+        if (el.dataset.visible === 'true') {
+            const prefix = key.substring(0, 10);
+            const mask = '*'.repeat(key.length - 10);
+            el.textContent = prefix + mask;
+            el.dataset.visible = 'false';
+            icon.className = 'fa-solid fa-eye';
+        } else {
+            el.textContent = key;
+            el.dataset.visible = 'true';
+            icon.className = 'fa-solid fa-eye-slash';
+        }
+    }
+    
+    async function loadApiKeys() {
+        try {
+            // İlk olarak izin listesini alalım
+            if (allPermissions.length === 0) {
+                const pRes = await fetch('/api/admin/permissions');
+                if (pRes.ok) {
+                    const pData = await pRes.json();
+                    allPermissions = pData.permissions || [];
+                }
+            }
+
+            const res = await fetch('/api/admin/apikeys');
+            const data = await res.json();
+            const tbody = document.getElementById('apikey-table-body');
+            tbody.innerHTML = '';
+            
+            if (!data.keys || data.keys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Henüz API Key oluşturulmamış.</td></tr>';
+                return;
+            }
+
+            data.keys.forEach(k => {
+                const tr = document.createElement('tr');
+                const d = new Date(k.createdAt);
+                
+                let permsHtml = k.permissions.map(p => `<span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--primary);">${p}</span>`).join(' ');
+                if (k.permissions.length === 0) permsHtml = '<span class="badge" style="color: var(--text-muted)">Yetkisiz</span>';
+                if (k.permissions.includes('*')) permsHtml = '<span class="badge danger">Tam Yetki (*)</span>';
+
+                const hiddenKey = k.apiKey ? (k.apiKey.substring(0, 10) + '*'.repeat(k.apiKey.length - 10)) : 'Bilinmiyor';
+
+                tr.innerHTML = `
+                    <td>#${k.id}</td>
+                    <td style="font-weight: 500">${k.description || '-'}</td>
+                    <td>
+                        <code style="background: var(--bg-base); padding: 4px 8px; border-radius: 4px; font-family: monospace; display: inline-block; min-width: 250px;">
+                            <span id="apikey-display-${k.id}" data-visible="false">${hiddenKey}</span>
+                        </code>
+                        <button class="btn" style="padding: 4px 8px; margin-left: 5px; background: transparent; border: 1px solid var(--border);" onclick="toggleApiKeyVisibility(${k.id}, '${k.apiKey}')">
+                            <i id="apikey-icon-${k.id}" class="fa-solid fa-eye"></i>
+                        </button>
+                    </td>
+                    <td>${permsHtml}</td>
+                    <td>${d.toLocaleDateString()} ${d.toLocaleTimeString()}</td>
+                    <td style="text-align: right">
+                        <button class="btn" style="padding: 4px 8px; font-size: 12px; margin-right: 5px;" onclick='editApiKey(${JSON.stringify(k).replace(/'/g, "&#39;")})'>Düzenle</button>
+                        <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="deleteApiKey(${k.id})">Sil</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderPermsCheckboxes(selectedPerms = []) {
+        const list = document.getElementById('apikey-perms-list');
+        list.innerHTML = '';
+        
+        allPermissions.forEach(p => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '8px';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            
+            const isChecked = selectedPerms.includes(p.id) || selectedPerms.includes('*');
+            
+            div.innerHTML = `
+                <input type="checkbox" id="chk_api_${p.id}" value="${p.id}" ${isChecked ? 'checked' : ''} style="margin-right: 10px; cursor: pointer;">
+                <label for="chk_api_${p.id}" style="margin: 0; cursor: pointer; color: var(--text-main); font-weight: normal;">
+                    <strong>${p.id}</strong> <span style="color: var(--text-muted); font-size: 12px; margin-left: 5px;">- ${p.description}</span>
+                </label>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function openApiKeyModal() {
+        document.getElementById('apikey-modal-title').textContent = 'Yeni API Key';
+        document.getElementById('apikey-id').value = '';
+        document.getElementById('apikey-desc').value = '';
+        document.getElementById('apikey-display-group').style.display = 'none';
+        document.getElementById('apikey-save-btn').style.display = 'block';
+        document.getElementById('apikey-form-inputs').style.display = 'block';
+        renderPermsCheckboxes([]);
+        document.getElementById('apikey-modal').style.display = 'flex';
+    }
+
+    function editApiKey(k) {
+        document.getElementById('apikey-modal-title').textContent = 'API Key Düzenle (#' + k.id + ')';
+        document.getElementById('apikey-id').value = k.id;
+        document.getElementById('apikey-desc').value = k.description;
+        document.getElementById('apikey-display-group').style.display = 'none';
+        document.getElementById('apikey-save-btn').style.display = 'block';
+        document.getElementById('apikey-form-inputs').style.display = 'block';
+        renderPermsCheckboxes(k.permissions);
+        document.getElementById('apikey-modal').style.display = 'flex';
+    }
+
+    function closeApiKeyModal() {
+        document.getElementById('apikey-modal').style.display = 'none';
+        
+        // Reset form completely so it doesn't show old values next time
+        document.getElementById('apikey-id').value = '';
+        document.getElementById('apikey-desc').value = '';
+        document.getElementById('apikey-display-group').style.display = 'none';
+        document.getElementById('apikey-new-value').value = '';
+        document.getElementById('apikey-save-btn').style.display = 'block';
+        document.getElementById('apikey-form-inputs').style.display = 'block';
+    }
+
+    function copyNewApiKey() {
+        const val = document.getElementById('apikey-new-value').value;
+        navigator.clipboard.writeText(val).then(() => {
+            showToast('API Key panoya kopyalandı!');
+        });
+    }
+
+    async function saveApiKey() {
+        const id = document.getElementById('apikey-id').value;
+        const desc = document.getElementById('apikey-desc').value;
+        
+        const checked = Array.from(document.querySelectorAll('#apikey-perms-list input:checked')).map(cb => cb.value);
+        
+        const method = id ? 'PUT' : 'POST';
+        const body = { description: desc, permissions: checked };
+        if (id) body.id = parseInt(id, 10);
+
+        try {
+            const res = await fetch('/api/admin/apikeys', {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.ok) {
+                loadApiKeys();
+                if (!id && data.apiKey) {
+                    document.getElementById('apikey-modal-title').textContent = 'API Key Oluşturuldu!';
+                    document.getElementById('apikey-display-group').style.display = 'block';
+                    document.getElementById('apikey-new-value').value = data.apiKey;
+                    document.getElementById('apikey-save-btn').style.display = 'none';
+                    document.getElementById('apikey-form-inputs').style.display = 'none';
+                    showToast('Yeni API Key oluşturuldu!');
+                } else {
+                    closeApiKeyModal();
+                    showToast('API Key güncellendi!');
+                }
+            } else {
+                showToast('Hata: ' + (data.error || 'Bilinmiyor'), 'error');
+            }
+        } catch (e) {
+            showToast('Bağlantı hatası', 'error');
+        }
+    }
+
+    async function deleteApiKey(id) {
+        openConfirmModal('Bu API anahtarını silmek istediğinize emin misiniz?', async () => {
+            try {
+                const res = await fetch('/api/admin/apikeys', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                const data = await res.json();
+                if(data.ok) {
+                    showToast('API Key silindi!');
+                    loadApiKeys();
+                } else {
+                    showToast('Hata oluştu', 'error');
+                }
+            } catch (e) {
+                showToast('Bağlantı hatası', 'error');
+            }
+        });
+    }
+
+    loadApiKeys();
+</script>

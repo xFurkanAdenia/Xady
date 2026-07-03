@@ -1,0 +1,5 @@
+name: HelloWorldX
+version: 1.0.0
+description: Örnek Xady modülü (.xext mimarisi testi)
+author: Trae
+main: index.js

@@ -1,0 +1,4 @@
+name: ObsidianBreaker
+version: 1.0.0
+description: Gördüğü tüm obsidyenleri kıran modül.
+main: index.js

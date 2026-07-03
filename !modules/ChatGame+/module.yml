@@ -1,0 +1,6 @@
+name: ChatGamePlus
+description: Gelişmiş Sohbet Oyunu.
+version: 1.0.0
+main: index.js
+dependencies:
+  - WioCraft

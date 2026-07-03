@@ -1,0 +1,14 @@
+{
+    "name": "webpos",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "compile": "xext --compile",
+        "test": "xext --test-syntax",
+        "sync": "xext --sync"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    }
+}

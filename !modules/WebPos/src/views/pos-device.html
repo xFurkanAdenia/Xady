@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Cihazı</title>
+</head>
+<body>
+    <!-- POS Cihazı Simülasyonu -->
+    <div class="pos-device">
+        <!-- Ekran -->
+        <div class="pos-screen">
+            <div class="pos-screen-header">
+                <div class="pos-screen-time" id="pos-time">00:00:00</div>
+                <div class="pos-screen-balance">
+                    Bakiye: <span id="pos-user-balance">0.00</span>⛁
+                </div>
+            </div>
+
+            <div class="pos-screen-content" id="pos-screen-content">
+                <!-- Ana Menü -->
+                <div class="pos-screen-view" id="view-main">
+                    <div class="pos-screen-title">ANA MENÜ</div>
+                    <div class="pos-menu">
+                        <button class="pos-menu-item" onclick="posShowView('create')">
+                            <div class="pos-menu-icon">💳</div>
+                            <div class="pos-menu-text">Ödeme Al</div>
+                        </button>
+                        <button class="pos-menu-item" onclick="posShowView('products')">
+                            <div class="pos-menu-icon">📦</div>
+                            <div class="pos-menu-text">Ürünler</div>
+                        </button>
+                        <button class="pos-menu-item" onclick="posShowView('active')">
+                            <div class="pos-menu-icon">⏳</div>
+                            <div class="pos-menu-text">Aktif Ödemeler</div>
+                        </button>
+                        <button class="pos-menu-item" onclick="posShowView('history')">
+                            <div class="pos-menu-icon">📋</div>
+                            <div class="pos-menu-text">Geçmiş</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ödeme Oluştur -->
+                <div class="pos-screen-view" id="view-create" style="display: none;">
+                    <div class="pos-screen-title">ÖDEME OLUŞTUR</div>
+                    <div class="pos-form">
+                        <div class="pos-form-group">
+                            <label>Oyuncu Adı</label>
+                            <input type="text" id="input-username" class="pos-input" placeholder="Oyuncu adı">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Tutar (⛁)</label>
+                            <input type="number" id="input-amount" class="pos-input" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Açıklama</label>
+                            <input type="text" id="input-desc" class="pos-input" placeholder="İsteğe bağlı">
+                        </div>
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">İptal</button>
+                        <button class="pos-btn pos-btn-primary" onclick="posCreatePayment()">Oluştur</button>
+                    </div>
+                </div>
+
+                <!-- Ürünler -->
+                <div class="pos-screen-view" id="view-products" style="display: none;">
+                    <div class="pos-screen-title">ÜRÜNLER</div>
+                    <div class="pos-products-grid" id="products-grid">
+                        <!-- Ürünler buraya yüklenecek -->
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">Geri</button>
+                        <button class="pos-btn pos-btn-success" onclick="posShowView('product-add')">+ Yeni</button>
+                    </div>
+                </div>
+
+                <!-- Ürün Ekle -->
+                <div class="pos-screen-view" id="view-product-add" style="display: none;">
+                    <div class="pos-screen-title">ÜRÜN EKLE</div>
+                    <div class="pos-form">
+                        <div class="pos-form-group">
+                            <label>Ürün Adı</label>
+                            <input type="text" id="input-product-name" class="pos-input" placeholder="Ürün adı">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Fiyat (⛁)</label>
+                            <input type="number" id="input-product-price" class="pos-input" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Açıklama</label>
+                            <input type="text" id="input-product-desc" class="pos-input" placeholder="İsteğe bağlı">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Fonksiyon</label>
+                            <select id="input-product-function" class="pos-input">
+                                <option value="">Fonksiyon seçiniz...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('products')">İptal</button>
+                        <button class="pos-btn pos-btn-primary" onclick="posAddProduct()">Kaydet</button>
+                    </div>
+                </div>
+
+                <!-- Aktif Ödemeler -->
+                <div class="pos-screen-view" id="view-active" style="display: none;">
+                    <div class="pos-screen-title">AKTİF ÖDEMELER</div>
+                    <div class="pos-list" id="active-list">
+                        <!-- Aktif ödemeler buraya -->
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">Geri</button>
+                    </div>
+                </div>
+
+                <!-- Geçmiş -->
+                <div class="pos-screen-view" id="view-history" style="display: none;">
+                    <div class="pos-screen-title">ÖDEME GEÇMİŞİ</div>
+                    <div class="pos-list" id="history-list">
+                        <!-- Geçmiş ödemeler buraya -->
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">Geri</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alt Bar -->
+            <div class="pos-screen-footer">
+                <div class="pos-status" id="pos-status">HAZIR</div>
+            </div>
+        </div>
+
+        <!-- Tuş Takımı -->
+        <div class="pos-keypad">
+            <div class="pos-keypad-row">
+                <button class="pos-key" onclick="posKeyPress('7')">7</button>
+                <button class="pos-key" onclick="posKeyPress('8')">8</button>
+                <button class="pos-key" onclick="posKeyPress('9')">9</button>
+            </div>
+            <div class="pos-keypad-row">
+                <button class="pos-key" onclick="posKeyPress('4')">4</button>
+                <button class="pos-key" onclick="posKeyPress('5')">5</button>
+                <button class="pos-key" onclick="posKeyPress('6')">6</button>
+            </div>
+            <div class="pos-keypad-row">
+                <button class="pos-key" onclick="posKeyPress('1')">1</button>
+                <button class="pos-key" onclick="posKeyPress('2')">2</button>
+                <button class="pos-key" onclick="posKeyPress('3')">3</button>
+            </div>
+            <div class="pos-keypad-row">
+                <button class="pos-key pos-key-clear" onclick="posKeyPress('C')">C</button>
+                <button class="pos-key" onclick="posKeyPress('0')">0</button>
+                <button class="pos-key pos-key-ok" onclick="posKeyPress('OK')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="pos-device.js"></script>
+</body>
+</html>

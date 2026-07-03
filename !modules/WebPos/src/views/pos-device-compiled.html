@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Cihazı</title>
+<style>/* POS Cihazı - WebPanel Teması */
+.pos-device {
+    width: 450px;
+    max-width: 100%;
+    margin: 0 auto;
+    background: var(--bg-surface, #1e1e1e);
+    border-radius: 16px;
+    border: 1px solid var(--border, #333);
+    overflow: hidden;
+}
+
+/* Ekran */
+.pos-screen {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid var(--primary, #7c63f5);
+    margin-bottom: 16px;
+}
+
+.pos-screen-header {
+    background: var(--bg-base, #0a0a0a);
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border, #333);
+    font-size: 11px;
+    color: var(--primary, #7c63f5);
+    font-family: 'Courier New', monospace;
+}
+
+.pos-screen-time {
+    font-weight: bold;
+}
+
+.pos-screen-balance {
+    color: var(--success, #2ecc71);
+}
+
+.pos-screen-content {
+    min-height: 400px;
+    background: #000;
+    position: relative;
+}
+
+.pos-screen-view {
+    padding: 16px;
+    color: var(--text-main, #e0e0e0);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.pos-screen-title {
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--primary, #7c63f5);
+    letter-spacing: 1px;
+    color: var(--primary, #7c63f5);
+}
+
+.pos-screen-footer {
+    background: var(--bg-base, #0a0a0a);
+    padding: 8px 12px;
+    border-top: 1px solid var(--border, #333);
+    font-size: 10px;
+    color: var(--text-muted, #666);
+    text-align: center;
+    font-family: 'Courier New', monospace;
+}
+
+.pos-status {
+    color: var(--success, #2ecc71);
+    font-weight: bold;
+}
+
+/* Menü */
+.pos-menu {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.pos-menu-item {
+    background: var(--bg-base, #0a0a0a);
+    border: 2px solid var(--primary, #7c63f5);
+    border-radius: 8px;
+    padding: 20px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-main, #e0e0e0);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.pos-menu-item:hover {
+    background: var(--primary, #7c63f5);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(124, 99, 245, 0.3);
+}
+
+.pos-menu-icon {
+    font-size: 32px;
+}
+
+.pos-menu-text {
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Form */
+.pos-form {
+    margin-bottom: 20px;
+}
+
+.pos-form-group {
+    margin-bottom: 16px;
+}
+
+.pos-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-input {
+    width: 100%;
+    background: var(--bg-base, #0a0a0a);
+    border: 1px solid var(--border, #333);
+    border-radius: 4px;
+    padding: 10px;
+    color: var(--text-main, #e0e0e0);
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.pos-input:focus {
+    outline: none;
+    border-color: var(--primary, #7c63f5);
+    box-shadow: 0 0 8px rgba(124, 99, 245, 0.3);
+}
+
+.pos-input::placeholder {
+    color: var(--text-muted, #666);
+}
+
+select.pos-input {
+    cursor: pointer;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 20px;
+    padding-right: 32px;
+}
+
+select.pos-input option {
+    background: var(--bg-base, #0a0a0a);
+    color: var(--text-main, #e0e0e0);
+}
+
+/* Buttons */
+.pos-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.pos-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Courier New', monospace;
+}
+
+.pos-btn-primary {
+    background: var(--primary, #7c63f5);
+    color: #fff;
+}
+
+.pos-btn-primary:hover {
+    background: var(--primary-hover, #6952d4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 99, 245, 0.3);
+}
+
+.pos-btn-secondary {
+    background: var(--bg-base, #333);
+    color: var(--text-main, #e0e0e0);
+    border: 1px solid var(--border, #555);
+}
+
+.pos-btn-secondary:hover {
+    background: var(--bg-surface, #444);
+}
+
+.pos-btn-success {
+    background: #00cc00;
+    color: #000;
+}
+
+.pos-btn-danger {
+    background: #ff3333;
+    color: #fff;
+}
+
+/* Products Grid */
+.pos-products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.pos-product-card {
+    background: var(--bg-base, #0a0a0a);
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pos-product-card:hover {
+    background: var(--bg-hover, #1a1a1a);
+    border-color: var(--primary, #7c63f5);
+    box-shadow: 0 0 8px rgba(124, 99, 245, 0.2);
+}
+
+.pos-product-name {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-product-price {
+    font-size: 14px;
+    color: var(--warning, #f39c12);
+}
+
+/* List */
+.pos-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.pos-list-item {
+    background: #0a0a0a;
+    border: 1px solid #00ff00;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 11px;
+}
+
+.pos-list-item-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+.pos-list-item-body {
+    font-size: 10px;
+    color: #00cc00;
+}
+
+/* Tuş Takımı */
+.pos-keypad {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    background: var(--bg-base, #0a0a0a);
+    border-radius: 0 0 16px 16px;
+}
+
+.pos-keypad-row {
+    display: flex;
+    gap: 6px;
+}
+
+.pos-key {
+    flex: 1;
+    height: 50px;
+    background: var(--bg-surface, #2a2a2a);
+    border: 1px solid var(--border, #444);
+    border-radius: 6px;
+    color: var(--text-main, #e0e0e0);
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.pos-key:active {
+    transform: scale(0.95);
+}
+
+.pos-key:hover {
+    background: var(--bg-hover, #3a3a3a);
+    border-color: var(--primary, #7c63f5);
+}
+
+.pos-key-clear {
+    background: var(--danger, #e74c3c);
+    color: #fff;
+    border-color: var(--danger, #e74c3c);
+}
+
+.pos-key-clear:hover {
+    background: #c0392b;
+}
+
+.pos-key-ok {
+    background: var(--success, #2ecc71);
+    color: #fff;
+    border-color: var(--success, #2ecc71);
+}
+
+.pos-key-ok:hover {
+    background: #27ae60;
+}
+
+/* Scrollbar */
+.pos-list::-webkit-scrollbar,
+.pos-products-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pos-list::-webkit-scrollbar-track,
+.pos-products-grid::-webkit-scrollbar-track {
+    background: var(--bg-base, #0a0a0a);
+}
+
+.pos-list::-webkit-scrollbar-thumb,
+.pos-products-grid::-webkit-scrollbar-thumb {
+    background: var(--primary, #7c63f5);
+    border-radius: 3px;
+}
+
+/* Empty State */
+.pos-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted, #666);
+    font-size: 12px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .pos-device {
+        width: 100%;
+        max-width: 450px;
+    }
+}
+</style></head>
+<body>
+    <!-- POS Cihazı Simülasyonu -->
+    <div class="pos-device">
+        <!-- Ekran -->
+        <div class="pos-screen">
+            <div class="pos-screen-header">
+                <div class="pos-screen-time" id="pos-time">00:00:00</div>
+                <div class="pos-screen-balance">
+                    Bakiye: <span id="pos-user-balance">0.00</span>⛁
+                </div>
+            </div>
+
+            <div class="pos-screen-content" id="pos-screen-content">
+                <!-- Ana Menü -->
+                <div class="pos-screen-view" id="view-main">
+                    <div class="pos-screen-title">ANA MENÜ</div>
+                    <div class="pos-menu">
+                        <button class="pos-menu-item" onclick="posShowView('create')">
+                            <div class="pos-menu-icon">💳</div>
+                            <div class="pos-menu-text">Ödeme Al</div>
+                        </button>
+                        <button class="pos-menu-item" onclick="posShowView('products')">
+                            <div class="pos-menu-icon">📦</div>
+                            <div class="pos-menu-text">Ürünler</div>
+                        </button>
+                        <button class="pos-menu-item" onclick="posShowView('active')">
+                            <div class="pos-menu-icon">⏳</div>
+                            <div class="pos-menu-text">Aktif Ödemeler</div>
+                        </button>
+                        <button class="pos-menu-item" onclick="posShowView('history')">
+                            <div class="pos-menu-icon">📋</div>
+                            <div class="pos-menu-text">Geçmiş</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ödeme Oluştur -->
+                <div class="pos-screen-view" id="view-create" style="display: none;">
+                    <div class="pos-screen-title">ÖDEME OLUŞTUR</div>
+                    <div class="pos-form">
+                        <div class="pos-form-group">
+                            <label>Oyuncu Adı</label>
+                            <input type="text" id="input-username" class="pos-input" placeholder="Oyuncu adı">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Tutar (⛁)</label>
+                            <input type="number" id="input-amount" class="pos-input" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Açıklama</label>
+                            <input type="text" id="input-desc" class="pos-input" placeholder="İsteğe bağlı">
+                        </div>
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">İptal</button>
+                        <button class="pos-btn pos-btn-primary" onclick="posCreatePayment()">Oluştur</button>
+                    </div>
+                </div>
+
+                <!-- Ürünler -->
+                <div class="pos-screen-view" id="view-products" style="display: none;">
+                    <div class="pos-screen-title">ÜRÜNLER</div>
+                    <div class="pos-products-grid" id="products-grid">
+                        <!-- Ürünler buraya yüklenecek -->
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">Geri</button>
+                        <button class="pos-btn pos-btn-success" onclick="posShowView('product-add')">+ Yeni</button>
+                    </div>
+                </div>
+
+                <!-- Ürün Ekle -->
+                <div class="pos-screen-view" id="view-product-add" style="display: none;">
+                    <div class="pos-screen-title">ÜRÜN EKLE</div>
+                    <div class="pos-form">
+                        <div class="pos-form-group">
+                            <label>Ürün Adı</label>
+                            <input type="text" id="input-product-name" class="pos-input" placeholder="Ürün adı">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Fiyat (⛁)</label>
+                            <input type="number" id="input-product-price" class="pos-input" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Açıklama</label>
+                            <input type="text" id="input-product-desc" class="pos-input" placeholder="İsteğe bağlı">
+                        </div>
+                        <div class="pos-form-group">
+                            <label>Fonksiyon</label>
+                            <select id="input-product-function" class="pos-input">
+                                <option value="">Fonksiyon seçiniz...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('products')">İptal</button>
+                        <button class="pos-btn pos-btn-primary" onclick="posAddProduct()">Kaydet</button>
+                    </div>
+                </div>
+
+                <!-- Aktif Ödemeler -->
+                <div class="pos-screen-view" id="view-active" style="display: none;">
+                    <div class="pos-screen-title">AKTİF ÖDEMELER</div>
+                    <div class="pos-list" id="active-list">
+                        <!-- Aktif ödemeler buraya -->
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">Geri</button>
+                    </div>
+                </div>
+
+                <!-- Geçmiş -->
+                <div class="pos-screen-view" id="view-history" style="display: none;">
+                    <div class="pos-screen-title">ÖDEME GEÇMİŞİ</div>
+                    <div class="pos-list" id="history-list">
+                        <!-- Geçmiş ödemeler buraya -->
+                    </div>
+                    <div class="pos-buttons">
+                        <button class="pos-btn pos-btn-secondary" onclick="posShowView('main')">Geri</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alt Bar -->
+            <div class="pos-screen-footer">
+                <div class="pos-status" id="pos-status">HAZIR</div>
+            </div>
+        </div>
+
+        <!-- Tuş Takımı -->
+        <div class="pos-keypad">
+            <div class="pos-keypad-row">
+                <button class="pos-key" onclick="posKeyPress('7')">7</button>
+                <button class="pos-key" onclick="posKeyPress('8')">8</button>
+                <button class="pos-key" onclick="posKeyPress('9')">9</button>
+            </div>
+            <div class="pos-keypad-row">
+                <button class="pos-key" onclick="posKeyPress('4')">4</button>
+                <button class="pos-key" onclick="posKeyPress('5')">5</button>
+                <button class="pos-key" onclick="posKeyPress('6')">6</button>
+            </div>
+            <div class="pos-keypad-row">
+                <button class="pos-key" onclick="posKeyPress('1')">1</button>
+                <button class="pos-key" onclick="posKeyPress('2')">2</button>
+                <button class="pos-key" onclick="posKeyPress('3')">3</button>
+            </div>
+            <div class="pos-keypad-row">
+                <button class="pos-key pos-key-clear" onclick="posKeyPress('C')">C</button>
+                <button class="pos-key" onclick="posKeyPress('0')">0</button>
+                <button class="pos-key pos-key-ok" onclick="posKeyPress('OK')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>// POS Device JavaScript
+(function() {
+    'use strict';
+
+    const state = {
+        currentView: 'main',
+        activeInput: null,
+        activePayments: [],
+        historyPayments: [],
+        products: [],
+        functions: [],
+        balance: 0,
+        eventSource: null
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // UTILITY FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+    function formatAmount(amount) {
+        return Number(amount).toLocaleString('tr-TR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function formatTime(timestamp) {
+        return new Date(timestamp).toLocaleString('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    function setStatus(text, color = '#00ff00') {
+        const el = document.getElementById('pos-status');
+        if (el) {
+            el.textContent = text;
+            el.style.color = color;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // VIEW MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
+    window.posShowView = function(viewName) {
+        // Tüm view'ları gizle
+        document.querySelectorAll('.pos-screen-view').forEach(v => {
+            v.style.display = 'none';
+        });
+
+        // Seçilen view'ı göster
+        const view = document.getElementById(`view-${viewName}`);
+        if (view) {
+            view.style.display = 'block';
+            state.currentView = viewName;
+            state.activeInput = null;
+
+            // View açıldığında verileri yükle
+            if (viewName === 'active') loadActivePayments();
+            else if (viewName === 'history') loadHistoryPayments();
+            else if (viewName === 'products') loadProducts();
+            else if (viewName === 'product-add') loadFunctions();
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // KEYPAD
+    // ═══════════════════════════════════════════════════════════
+    window.posKeyPress = function(key) {
+        if (!state.activeInput) {
+            // Input seçili değilse ses çık
+            setStatus('Lütfen bir alan seçin', '#ff3333');
+            setTimeout(() => setStatus('HAZIR'), 1000);
+            return;
+        }
+
+        const input = document.getElementById(state.activeInput);
+        if (!input) return;
+
+        if (key === 'C') {
+            input.value = '';
+        } else if (key === 'OK') {
+            state.activeInput = null;
+            input.blur();
+            setStatus('HAZIR');
+        } else {
+            input.value += key;
+        }
+    };
+
+    // Input focus olduğunda aktif yap
+    document.addEventListener('focusin', (e) => {
+        if (e.target.classList.contains('pos-input')) {
+            state.activeInput = e.target.id;
+            setStatus(`${e.target.previousElementSibling?.textContent || 'ALAN'} SEÇİLDİ`, '#ffaa00');
+        }
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // API CALLS
+    // ═══════════════════════════════════════════════════════════
+    async function loadBalance() {
+        try {
+            const res = await fetch('/api/pos/balance');
+            const data = await res.json();
+            if (data.ok) {
+                state.balance = data.balance;
+                document.getElementById('pos-user-balance').textContent = formatAmount(data.balance);
+            }
+        } catch (error) {
+            console.error('[POS] Balance load error:', error);
+        }
+    }
+
+    async function loadActivePayments() {
+        try {
+            const res = await fetch('/api/pos/payments');
+            const data = await res.json();
+            if (data.ok) {
+                state.activePayments = data.payments;
+                renderActivePayments();
+            }
+        } catch (error) {
+            console.error('[POS] Active payments load error:', error);
+        }
+    }
+
+    async function loadHistoryPayments() {
+        try {
+            const res = await fetch('/api/pos/history');
+            const data = await res.json();
+            if (data.ok) {
+                state.historyPayments = data.payments;
+                renderHistoryPayments();
+            }
+        } catch (error) {
+            console.error('[POS] History load error:', error);
+        }
+    }
+
+    async function loadProducts() {
+        try {
+            const res = await fetch('/api/pos/products');
+            const data = await res.json();
+            if (data.ok) {
+                state.products = data.products;
+                renderProducts();
+            }
+        } catch (error) {
+            console.error('[POS] Products load error:', error);
+        }
+    }
+
+    async function loadFunctions() {
+        try {
+            const res = await fetch('/api/pos/functions');
+            const data = await res.json();
+            if (data.ok) {
+                state.functions = data.functions;
+                renderFunctions();
+            }
+        } catch (error) {
+            console.error('[POS] Functions load error:', error);
+        }
+    }
+
+    window.posAddProduct = async function() {
+        const name = document.getElementById('input-product-name').value.trim();
+        const price = parseFloat(document.getElementById('input-product-price').value);
+        const description = document.getElementById('input-product-desc').value.trim();
+        const functionId = document.getElementById('input-product-function').value;
+
+        if (!name) {
+            setStatus('ÜRÜN ADI GEREKLİ', '#ff3333');
+            return;
+        }
+
+        if (!price || price <= 0) {
+            setStatus('GEÇERSİZ FİYAT', '#ff3333');
+            return;
+        }
+
+        setStatus('KAYDEDİLİYOR...', '#ffaa00');
+
+        try {
+            // CSRF token'ı al
+            const meRes = await fetch('/api/me');
+            const meData = await meRes.json();
+            const csrfToken = meData.csrfToken;
+
+            const res = await fetch('/api/pos/products', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({ 
+                    name, 
+                    price, 
+                    description: description || undefined,
+                    functionId: functionId || undefined
+                })
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                setStatus('ÜRÜN EKLENDİ', '#00ff00');
+                document.getElementById('input-product-name').value = '';
+                document.getElementById('input-product-price').value = '';
+                document.getElementById('input-product-desc').value = '';
+                document.getElementById('input-product-function').value = '';
+                setTimeout(() => {
+                    loadProducts();
+                    posShowView('products');
+                }, 1000);
+            } else {
+                setStatus(data.error || 'HATA', '#ff3333');
+            }
+        } catch (error) {
+            setStatus('BAĞLANTI HATASI', '#ff3333');
+        }
+    };
+
+    window.posCreatePayment = async function() {
+        const username = document.getElementById('input-username').value.trim();
+        const amount = parseFloat(document.getElementById('input-amount').value);
+        const description = document.getElementById('input-desc').value.trim();
+
+        if (!username) {
+            setStatus('OYUNCU ADI GEREKLİ', '#ff3333');
+            return;
+        }
+
+        if (!amount || amount <= 0) {
+            setStatus('GEÇERSİZ TUTAR', '#ff3333');
+            return;
+        }
+
+        setStatus('OLUŞTURULUYOR...', '#ffaa00');
+
+        try {
+            const res = await fetch('/api/pos/payments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, amount, description })
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                setStatus('ÖDEME OLUŞTURULDU', '#00ff00');
+                document.getElementById('input-username').value = '';
+                document.getElementById('input-amount').value = '';
+                document.getElementById('input-desc').value = '';
+                setTimeout(() => posShowView('active'), 1000);
+            } else {
+                setStatus(data.error || 'HATA', '#ff3333');
+            }
+        } catch (error) {
+            setStatus('BAĞLANTI HATASI', '#ff3333');
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // RENDER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+    function renderActivePayments() {
+        const container = document.getElementById('active-list');
+        if (!container) return;
+
+        if (state.activePayments.length === 0) {
+            container.innerHTML = '<div class="pos-empty">AKTİF ÖDEME YOK</div>';
+            return;
+        }
+
+        container.innerHTML = state.activePayments.map(payment => `
+            <div class="pos-list-item">
+                <div class="pos-list-item-header">
+                    <span>${payment.username}</span>
+                    <span>${formatAmount(payment.amount)}⛁</span>
+                </div>
+                <div class="pos-list-item-body">
+                    ${payment.description || '-'}<br>
+                    ${formatTime(payment.createdAt)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderHistoryPayments() {
+        const container = document.getElementById('history-list');
+        if (!container) return;
+
+        if (state.historyPayments.length === 0) {
+            container.innerHTML = '<div class="pos-empty">GEÇMİŞ YOK</div>';
+            return;
+        }
+
+        container.innerHTML = state.historyPayments.slice(0, 20).map(payment => {
+            const statusIcon = payment.status === 'success' ? '✓' : '✗';
+            const statusColor = payment.status === 'success' ? '#00ff00' : '#ff3333';
+            return `
+                <div class="pos-list-item">
+                    <div class="pos-list-item-header">
+                        <span style="color: ${statusColor};">${statusIcon} ${payment.username}</span>
+                        <span>${formatAmount(payment.amount)}⛁</span>
+                    </div>
+                    <div class="pos-list-item-body">
+                        ${formatTime(payment.completedAt || payment.createdAt)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderProducts() {
+        const container = document.getElementById('products-grid');
+        if (!container) return;
+
+        if (state.products.length === 0) {
+            container.innerHTML = '<div class="pos-empty" style="grid-column: 1/-1;">ÜRÜN YOK</div>';
+            return;
+        }
+
+        container.innerHTML = state.products.filter(p => p.enabled).map(product => `
+            <div class="pos-product-card" onclick="posSelectProduct('${product.id}')">
+                <div class="pos-product-name">${product.name}</div>
+                <div class="pos-product-price">${formatAmount(product.price)}⛁</div>
+            </div>
+        `).join('');
+    }
+
+    function renderFunctions() {
+        const select = document.getElementById('input-product-function');
+        if (!select) return;
+
+        // Mevcut option'ları temizle (ilk option hariç)
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+
+        // Fonksiyonları ekle
+        state.functions.forEach(fn => {
+            const option = document.createElement('option');
+            option.value = fn.id;
+            option.textContent = `${fn.name} (${fn.module})`;
+            select.appendChild(option);
+        });
+    }
+
+    window.posSelectProduct = async function(productId) {
+        const product = state.products.find(p => p.id === productId);
+        if (!product) return;
+
+        setStatus('ÜRÜN SEÇİLDİ', '#00ff00');
+        
+        // Ödeme oluşturma ekranına git ve otomatik doldur
+        posShowView('create');
+        document.getElementById('input-amount').value = product.price;
+        document.getElementById('input-desc').value = product.name;
+        
+        // Username input'a focus
+        document.getElementById('input-username').focus();
+    };
+
+    // ═══════════════════════════════════════════════════════════
+    // SSE CONNECTION
+    // ═══════════════════════════════════════════════════════════
+    function connectSSE() {
+        if (state.eventSource) {
+            state.eventSource.close();
+        }
+
+        state.eventSource = new EventSource('/api/pos/stream');
+
+        state.eventSource.addEventListener('pos_new', (e) => {
+            const payment = JSON.parse(e.data);
+            state.activePayments.push(payment);
+            if (state.currentView === 'active') {
+                renderActivePayments();
+            }
+            setStatus('YENİ ÖDEME', '#ffaa00');
+            setTimeout(() => setStatus('HAZIR'), 2000);
+        });
+
+        state.eventSource.addEventListener('pos_complete', (e) => {
+            const payment = JSON.parse(e.data);
+            state.activePayments = state.activePayments.filter(p => p.id !== payment.id);
+            state.historyPayments.unshift(payment);
+            
+            if (state.currentView === 'active') {
+                renderActivePayments();
+            } else if (state.currentView === 'history') {
+                renderHistoryPayments();
+            }
+
+            loadBalance(); // Bakiye güncellenebilir
+            setStatus('ÖDEME TAMAMLANDI', '#00ff00');
+            setTimeout(() => setStatus('HAZIR'), 2000);
+        });
+
+        state.eventSource.addEventListener('pos_cancel', (e) => {
+            const payment = JSON.parse(e.data);
+            state.activePayments = state.activePayments.filter(p => p.id !== payment.id);
+            
+            if (state.currentView === 'active') {
+                renderActivePayments();
+            }
+            
+            setStatus('ÖDEME İPTAL', '#ff3333');
+            setTimeout(() => setStatus('HAZIR'), 2000);
+        });
+
+        state.eventSource.onerror = () => {
+            setTimeout(() => connectSSE(), 3000);
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CLOCK
+    // ═══════════════════════════════════════════════════════════
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('tr-TR', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
+        document.getElementById('pos-time').textContent = timeStr;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+        loadBalance();
+        connectSSE();
+        setInterval(updateClock, 1000);
+        updateClock();
+        setStatus('HAZIR');
+    });
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(() => {
+            loadBalance();
+            connectSSE();
+            setInterval(updateClock, 1000);
+            updateClock();
+            setStatus('HAZIR');
+        }, 1);
+    }
+})();
+</script>
+</body>
+</html>

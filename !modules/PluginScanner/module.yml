@@ -1,0 +1,5 @@
+name: PluginScanner
+version: 1.0.0
+description: Sunucu pluginlerini taramak için modül
+main: index.js
+author: Xady

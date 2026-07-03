@@ -1,0 +1,4 @@
+name: WorkerPoolTest
+description: Tests WorkerPool functionality
+version: 1.0.0
+main: index.js

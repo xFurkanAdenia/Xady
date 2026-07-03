@@ -1,0 +1,283 @@
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Kullanıcı Yönetimi</div>
+        <button class="btn btn-primary" onclick="window.openUserModal()"><i class="fa-solid fa-plus"></i> Yeni Kullanıcı</button>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <table id="users-table">
+            <thead>
+                <tr>
+                    <th>Kullanıcı Adı</th>
+                    <th>Roller</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="4" class="text-center">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="user-modal">
+    <div class="modal" style="max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <div class="modal-title" id="user-modal-title">Kullanıcı Ekle</div>
+            <button class="modal-close" onclick="window.closeUserModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="user-modal-mode" value="create">
+            <div class="form-group">
+                <label class="form-label">Kullanıcı Adı</label>
+                <input type="text" class="form-control" id="user-username">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Şifre <small class="text-muted" id="user-password-help"></small></label>
+                <input type="password" class="form-control" id="user-password">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Rol</label>
+                <select class="form-control" id="user-roles">
+                    <option value="user">Kullanıcı (User)</option>
+                    <!-- Roles will be populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Özel İzinler</label>
+                <div id="user-permissions-list" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+                    <!-- Checkboxes will be populated here -->
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Yasaklama Süresi</label>
+                <select class="form-control" id="user-ban-time" onchange="document.getElementById('user-ban-reason-group').style.display = this.value ? 'block' : 'none'">
+                    <option value="">Yasaklı Değil</option>
+                    <option value="1h">1 Saat</option>
+                    <option value="1d">1 Gün</option>
+                    <option value="1w">1 Hafta</option>
+                    <option value="permanent">Süresiz</option>
+                </select>
+            </div>
+            <div class="form-group" id="user-ban-reason-group" style="display: none;">
+                <label class="form-label">Yasaklama Sebebi</label>
+                <input type="text" class="form-control" id="user-ban-reason" placeholder="Örn: Kural ihlali">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn" style="background: var(--bg-surface-hover); color: white;" onclick="window.closeUserModal()">İptal</button>
+            <button class="btn btn-primary" onclick="window.saveUser()">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.usersList = [];
+    window.availableUserPerms = [];
+    window.availableRoles = [];
+
+    window.loadUsers = async function() {
+        const tbody = document.querySelector('#users-table tbody');
+        try {
+            const [usersRes, permsRes, rolesRes] = await Promise.all([
+                fetch('/api/admin/users'),
+                fetch('/api/admin/permissions'),
+                fetch('/api/admin/roles')
+            ]);
+            
+            const usersData = await usersRes.json();
+            const permsData = await permsRes.json();
+            const rolesData = await rolesRes.json();
+            
+            if(permsData.ok) window.availableUserPerms = permsData.permissions || [];
+            if(rolesData.ok) window.availableRoles = Object.keys(rolesData.roles || {});
+
+            if(usersData.ok) {
+                window.usersList = usersData.users;
+                tbody.innerHTML = '';
+                if(window.usersList.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Kullanıcı bulunamadı.</td></tr>';
+                    return;
+                }
+                window.usersList.forEach(u => {
+                    const isBanned = u.bannedUntil && (u.bannedUntil === -1 || u.bannedUntil > Date.now());
+                    const statusBadge = isBanned 
+                        ? `<span class="badge danger">Yasaklı</span>` 
+                        : `<span class="badge success">Aktif</span>`;
+                    
+                    const rolesHtml = (u.roles || []).map(r => `<span class="badge primary">${r}</span>`).join(' ');
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${u.username}</td>
+                        <td>${rolesHtml}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <button class="btn btn-sm" style="background: var(--bg-surface-hover); color: white;" onclick="window.editUser('${u.username}')"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="window.deleteUser('${u.username}')"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch(e) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Hata oluştu.</td></tr>';
+        }
+    };
+
+    window.populateUserPerms = function(selectedPerms = []) {
+        const container = document.getElementById('user-permissions-list');
+        container.innerHTML = '';
+        window.availableUserPerms.forEach(p => {
+            const checked = selectedPerms.includes(p.id) || selectedPerms.includes('*') ? 'checked' : '';
+            const div = document.createElement('div');
+            div.style.marginBottom = '5px';
+            div.innerHTML = `
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" value="${p.id}" class="user-perm-cb" ${checked}>
+                    <span>${p.id} <small class="text-muted">(${p.description})</small></span>
+                </label>
+            `;
+            container.appendChild(div);
+        });
+    };
+
+    window.populateRolesDropdown = function(selectedRole = 'user') {
+        const select = document.getElementById('user-roles');
+        select.innerHTML = '';
+        
+        // Add default/fallback user role if not in list
+        const allRoles = new Set(['user', ...window.availableRoles]);
+        
+        allRoles.forEach(role => {
+            const option = document.createElement('option');
+            option.value = role;
+            option.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+            if(role === selectedRole) option.selected = true;
+            select.appendChild(option);
+        });
+    };
+
+    window.openUserModal = function() {
+        document.getElementById('user-modal-title').textContent = 'Kullanıcı Ekle';
+        document.getElementById('user-modal-mode').value = 'create';
+        document.getElementById('user-username').value = '';
+        document.getElementById('user-username').disabled = false;
+        document.getElementById('user-password').value = '';
+        document.getElementById('user-password-help').textContent = '(Zorunlu)';
+        window.populateRolesDropdown('user');
+        window.populateUserPerms([]);
+        document.getElementById('user-ban-time').value = '';
+        document.getElementById('user-ban-reason-group').style.display = 'none';
+        document.getElementById('user-ban-reason').value = '';
+        document.getElementById('user-modal').classList.add('show');
+    };
+
+    window.editUser = function(username) {
+        const u = window.usersList.find(x => x.username === username);
+        if(!u) return;
+        document.getElementById('user-modal-title').textContent = 'Kullanıcı Düzenle: ' + username;
+        document.getElementById('user-modal-mode').value = 'edit';
+        document.getElementById('user-username').value = username;
+        document.getElementById('user-username').disabled = true;
+        document.getElementById('user-password').value = '';
+        document.getElementById('user-password-help').textContent = '(Değiştirmek istemiyorsanız boş bırakın)';
+        
+        const primaryRole = (u.roles && u.roles.length > 0) ? u.roles[0] : 'user';
+        window.populateRolesDropdown(primaryRole);
+        
+        window.populateUserPerms(u.customPermissions || []);
+        
+        const isBanned = u.bannedUntil && (u.bannedUntil === -1 || u.bannedUntil > Date.now());
+        if(isBanned) {
+            document.getElementById('user-ban-time').value = u.bannedUntil === -1 ? 'permanent' : '1d';
+            document.getElementById('user-ban-reason-group').style.display = 'block';
+            document.getElementById('user-ban-reason').value = u.banReason || '';
+        } else {
+            document.getElementById('user-ban-time').value = '';
+            document.getElementById('user-ban-reason-group').style.display = 'none';
+            document.getElementById('user-ban-reason').value = '';
+        }
+        
+        document.getElementById('user-modal').classList.add('show');
+    };
+
+    window.closeUserModal = function() {
+        document.getElementById('user-modal').classList.remove('show');
+    };
+
+    window.saveUser = async function() {
+        const mode = document.getElementById('user-modal-mode').value;
+        const username = document.getElementById('user-username').value.trim();
+        const password = document.getElementById('user-password').value;
+        
+        // Single role selection
+        const selectedRole = document.getElementById('user-roles').value;
+        const roles = [selectedRole];
+        
+        const checkboxes = document.querySelectorAll('.user-perm-cb:checked');
+        const customPermissions = Array.from(checkboxes).map(cb => cb.value);
+
+        const banTime = document.getElementById('user-ban-time').value;
+        const banReason = document.getElementById('user-ban-reason').value.trim();
+        
+        if(!username) return alert('Kullanıcı adı gerekli.');
+        if(mode === 'create' && !password) return alert('Şifre gerekli.');
+
+        let bannedUntil = null;
+        if(banTime === '1h') bannedUntil = Date.now() + 1000 * 60 * 60;
+        else if(banTime === '1d') bannedUntil = Date.now() + 1000 * 60 * 60 * 24;
+        else if(banTime === '1w') bannedUntil = Date.now() + 1000 * 60 * 60 * 24 * 7;
+        else if(banTime === 'permanent') bannedUntil = -1;
+
+        const payload = { username, roles, customPermissions };
+        if(password) payload.password = password;
+        if(banTime) {
+            payload.bannedUntil = bannedUntil;
+            payload.banReason = banReason;
+        } else {
+            payload.bannedUntil = null;
+            payload.banReason = null;
+        }
+
+        const method = mode === 'create' ? 'POST' : 'PUT';
+        
+        try {
+            const res = await fetch('/api/admin/users', {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(data.ok) {
+                window.closeUserModal();
+                window.loadUsers();
+            } else {
+                alert('Hata: ' + (data.error || 'İşlem başarısız.'));
+            }
+        } catch(e) {
+            alert('Bağlantı hatası.');
+        }
+    };
+
+    window.deleteUser = async function(username) {
+        if(!confirm(username + ' kullanıcısını silmek istediğinize emin misiniz?')) return;
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            if(data.ok) {
+                window.loadUsers();
+            } else {
+                alert('Hata: ' + (data.error || 'Silinemedi.'));
+            }
+        } catch(e) {
+            alert('Bağlantı hatası.');
+        }
+    };
+
+    window.loadUsers();
+</script>

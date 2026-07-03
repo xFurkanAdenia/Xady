@@ -1,0 +1,15 @@
+name: WebPanel
+version: 1.0.0
+description: Web panel (ayarlar, chat, rol/izin) ve modül entegrasyonu
+main: src/index.js
+api-version: 1.0.0
+author: Xady
+website: https://xady.dev
+load: SPAWN
+language: typescript
+types-path: src/types/
+dependencies: []
+softDependencies: []
+loadBefore: []
+permissions: []
+commands: {}

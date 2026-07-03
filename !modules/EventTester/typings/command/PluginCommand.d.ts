@@ -1,0 +1,34 @@
+import BaseModule from "../models/BaseModule";
+import { CommandExecutor } from "./CommandExecutor";
+import { TabCompleter } from "./TabCompleter";
+import CommandSender from "../models/CommandSender";
+export declare class PluginCommand {
+    private name;
+    private description;
+    private usageMessage;
+    private permission;
+    private permissionMessage;
+    private aliases;
+    private module;
+    private executor;
+    private tabCompleter;
+    constructor(name: string, module?: BaseModule | null);
+    getName(): string;
+    getModule(): BaseModule | null;
+    getDescription(): string;
+    setDescription(description: string): this;
+    getUsage(): string;
+    setUsage(usage: string): this;
+    getPermission(): string | null;
+    setPermission(permission: string | null): this;
+    getPermissionMessage(): string;
+    setPermissionMessage(permissionMessage: string): this;
+    getAliases(): string[];
+    setAliases(aliases: string[]): this;
+    setExecutor(executor: CommandExecutor): this;
+    getExecutor(): CommandExecutor | null;
+    setTabCompleter(tabCompleter: TabCompleter): this;
+    getTabCompleter(): TabCompleter | null;
+    execute(sender: CommandSender, label: string, args: string[]): Promise<boolean>;
+    tabComplete(sender: CommandSender, label: string, args: string[]): Promise<string[]>;
+}

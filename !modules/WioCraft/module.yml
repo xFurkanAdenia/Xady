@@ -1,0 +1,7 @@
+name: WioCraft
+description: WioCraft Bot Core
+version: 1.0.0
+main: index.js
+dependencies:
+  - Permissible
+  - Payment

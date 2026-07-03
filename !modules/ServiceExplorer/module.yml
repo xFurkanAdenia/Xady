@@ -1,0 +1,6 @@
+name: ServiceExplorer
+version: 1.0.0
+main: index.ts
+description: Kayıtlı servisleri gösterir
+author: Xady
+api-version: "1.0"

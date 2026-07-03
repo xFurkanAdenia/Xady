@@ -1,0 +1,256 @@
+<!-- WebPos Config Sayfası - pos_config.html -->
+<style>
+.cfg-section {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+.cfg-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+.cfg-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 720px) {
+    .cfg-grid { grid-template-columns: 1fr; }
+}
+.cfg-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-style: italic;
+}
+.cfg-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+.pattern-preview {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    min-height: 32px;
+    word-break: break-all;
+}
+.pattern-preview.match { color: var(--success, #2ecc71); }
+.pattern-preview.no-match { color: var(--danger, #e74c3c); }
+</style>
+
+<div>
+    <div style="margin-bottom: 20px;">
+        <h2 style="margin:0; font-size:22px; font-weight:800;">⚙️ POS Ayarları</h2>
+        <p style="margin:4px 0 0; color:var(--text-muted); font-size:13px;">Config değişikliklerini kaydedin — otomatik olarak yeniden yüklenir.</p>
+    </div>
+
+    <!-- Mesaj Pattern -->
+    <div class="cfg-section">
+        <div class="cfg-section-title">📨 Mesaj Algılama</div>
+        <div class="form-group">
+            <label class="form-label">Regex Pattern</label>
+            <input type="text" id="cfg-pattern" class="form-control" placeholder="^\$\((.*)\) (.*) oyuncusundan alındı\.$" oninput="window.cfgPreviewPattern()">
+            <div class="cfg-hint">Oyun chat mesajını yakalamak için kullanılan düzenli ifade. Capture group'lar kullanın.</div>
+        </div>
+        <div class="cfg-grid" style="margin-top:14px;">
+            <div class="form-group">
+                <label class="form-label">Oyuncu Adı Grup İndeksi</label>
+                <input type="number" id="cfg-username-index" class="form-control" min="1" value="2">
+                <div class="cfg-hint">Pattern'deki hangi capture group (1-indexed) oyuncu adını içeriyor?</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Para Miktarı Grup İndeksi</label>
+                <input type="number" id="cfg-amount-index" class="form-control" min="1" value="1">
+                <div class="cfg-hint">Pattern'deki hangi capture group para miktarını içeriyor?</div>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">Para Formatı (Ayraç Tipi)</label>
+            <select id="cfg-decimal-separator" class="form-control">
+                <option value="comma_decimal">Virgül ondalık — 1.234.567,89 (TR tarzı)</option>
+                <option value="dot_decimal">Nokta ondalık — 1,234,567.89 (EN tarzı)</option>
+            </select>
+        </div>
+        <!-- Test aracı -->
+        <div class="form-group" style="margin-top:14px;">
+            <label class="form-label">🧪 Pattern Test Mesajı</label>
+            <input type="text" id="cfg-test-msg" class="form-control" placeholder="Örnek: $(1.500,00) StevePlayer oyuncusundan alındı." oninput="window.cfgPreviewPattern()">
+            <div class="pattern-preview" id="cfg-pattern-preview">Yukarıya bir test mesajı girin...</div>
+        </div>
+    </div>
+
+    <!-- Para Komutu -->
+    <div class="cfg-section">
+        <div class="cfg-section-title">💸 Para Transferi</div>
+        <div class="cfg-grid">
+            <div class="form-group">
+                <label class="form-label">Para Ödeme Komutu</label>
+                <input type="text" id="cfg-pay-command" class="form-control" placeholder="/pay {username} {amount}">
+                <div class="cfg-hint"><code>{username}</code> ve <code>{amount}</code> değişkenlerini kullanın.</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Ödeme Zaman Aşımı (dakika)</label>
+                <input type="number" id="cfg-timeout" class="form-control" min="1" max="120" value="15">
+                <div class="cfg-hint">Bu süre içinde ödeme yapılmazsa otomatik iptal edilir.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Oyuncu Mesajları -->
+    <div class="cfg-section">
+        <div class="cfg-section-title">💬 Oyuncu Mesajları (Whisper)</div>
+        <div class="cfg-grid">
+            <div class="form-group">
+                <label class="form-label">Başarılı ödeme (para üstü varsa)</label>
+                <input type="text" id="cfg-msg-success" class="form-control">
+                <div class="cfg-hint"><code>{change}</code> = para üstü miktarı</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Başarılı ödeme (tam tutar)</label>
+                <input type="text" id="cfg-msg-success-exact" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Yetersiz para</label>
+                <input type="text" id="cfg-msg-insufficient" class="form-control">
+                <div class="cfg-hint"><code>{amount}</code> = gereken tutar</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Aktif ödeme yok</label>
+                <input type="text" id="cfg-msg-no-payment" class="form-control">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Para iade</label>
+                <input type="text" id="cfg-msg-refund" class="form-control">
+            </div>
+        </div>
+    </div>
+
+    <!-- Kaydet -->
+    <div class="cfg-actions">
+        <button class="btn btn-secondary" onclick="window.cfgLoad()">🔄 Sıfırla</button>
+        <button class="btn btn-primary" id="cfg-save-btn" onclick="window.cfgSave()">💾 Kaydet & Yeniden Yükle</button>
+    </div>
+</div>
+
+<script>
+(() => {
+    async function loadConfig() {
+        try {
+            const res = await fetch('/api/pos/config');
+            const data = await res.json();
+            if (!data.ok) return;
+            const c = data.config;
+            document.getElementById('cfg-pattern').value = c.message?.pattern ?? '';
+            document.getElementById('cfg-username-index').value = c.message?.username_index ?? 2;
+            document.getElementById('cfg-amount-index').value = c.message?.amount_index ?? 1;
+            document.getElementById('cfg-decimal-separator').value = c.message?.decimal_separator ?? 'comma_decimal';
+            document.getElementById('cfg-pay-command').value = c.pay_command ?? '/pay {username} {amount}';
+            document.getElementById('cfg-timeout').value = c.payment_timeout_minutes ?? 15;
+            document.getElementById('cfg-msg-success').value = c.messages?.success ?? '';
+            document.getElementById('cfg-msg-success-exact').value = c.messages?.success_exact ?? '';
+            document.getElementById('cfg-msg-insufficient').value = c.messages?.insufficient ?? '';
+            document.getElementById('cfg-msg-no-payment').value = c.messages?.no_payment ?? '';
+            document.getElementById('cfg-msg-refund').value = c.messages?.refund ?? '';
+        } catch(e) {
+            console.error('[WebPos Config]', e);
+        }
+    }
+
+    window.cfgLoad = loadConfig;
+
+    window.cfgPreviewPattern = function() {
+        const patternStr = document.getElementById('cfg-pattern').value.trim();
+        const testMsg = document.getElementById('cfg-test-msg').value;
+        const preview = document.getElementById('cfg-pattern-preview');
+        const uIdx = parseInt(document.getElementById('cfg-username-index').value) || 1;
+        const aIdx = parseInt(document.getElementById('cfg-amount-index').value) || 1;
+
+        if (!patternStr) {
+            preview.textContent = 'Pattern giriniz...';
+            preview.className = 'pattern-preview';
+            return;
+        }
+        if (!testMsg) {
+            preview.textContent = 'Test mesajı giriniz...';
+            preview.className = 'pattern-preview';
+            return;
+        }
+        try {
+            const re = new RegExp(patternStr);
+            const match = re.exec(testMsg);
+            if (!match) {
+                preview.textContent = '❌ Eşleşme bulunamadı.';
+                preview.className = 'pattern-preview no-match';
+                return;
+            }
+            const username = match[uIdx] ?? '(yok)';
+            const amount = match[aIdx] ?? '(yok)';
+            preview.textContent = `✅ Eşleşti!  Oyuncu: "${username}"  |  Tutar: "${amount}"`;
+            preview.className = 'pattern-preview match';
+        } catch(e) {
+            preview.textContent = '⚠️ Geçersiz regex: ' + e.message;
+            preview.className = 'pattern-preview no-match';
+        }
+    };
+
+    window.cfgSave = async function() {
+        const btn = document.getElementById('cfg-save-btn');
+        btn.disabled = true;
+        btn.textContent = 'Kaydediliyor...';
+        try {
+            const body = {
+                message: {
+                    pattern: document.getElementById('cfg-pattern').value.trim(),
+                    username_index: parseInt(document.getElementById('cfg-username-index').value) || 2,
+                    amount_index: parseInt(document.getElementById('cfg-amount-index').value) || 1,
+                    decimal_separator: document.getElementById('cfg-decimal-separator').value,
+                },
+                pay_command: document.getElementById('cfg-pay-command').value.trim(),
+                payment_timeout_minutes: parseInt(document.getElementById('cfg-timeout').value) || 15,
+                messages: {
+                    success: document.getElementById('cfg-msg-success').value.trim(),
+                    success_exact: document.getElementById('cfg-msg-success-exact').value.trim(),
+                    insufficient: document.getElementById('cfg-msg-insufficient').value.trim(),
+                    no_payment: document.getElementById('cfg-msg-no-payment').value.trim(),
+                    refund: document.getElementById('cfg-msg-refund').value.trim(),
+                }
+            };
+            const res = await fetch('/api/pos/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (data.ok) {
+                if(window.showToast) window.showToast('✅ Config kaydedildi ve yeniden yüklendi!', 'success');
+            } else {
+                if(window.showToast) window.showToast(data.error || 'Kayıt başarısız.', 'danger');
+            }
+        } catch {
+            if(window.showToast) window.showToast('Bağlantı hatası.', 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '💾 Kaydet & Yeniden Yükle';
+        }
+    };
+
+    loadConfig();
+})();
+</script>

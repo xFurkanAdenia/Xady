@@ -1,0 +1,6 @@
+name: WheatHarvester
+version: 1.0.0
+description: Otomatik buğday toplama modülü.
+main: index.js
+dependencies:
+  - Permissible

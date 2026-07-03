@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xady Panel</title>
+    <link rel="stylesheet" href="/assets/layout.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="layout-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="fa-solid fa-robot"></i>
+                <span id="site-title">Xady Panel</span>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">MENÜ</div>
+                <nav id="sidebar-nav" class="sidebar-nav">
+                    <!-- Nav items will be injected here -->
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h2 id="page-title">Sayfa Yükleniyor...</h2>
+                </div>
+                <div class="header-right">
+                    <div class="user-dropdown">
+                        <button class="dropdown-toggle" id="user-dropdown-btn">
+                            <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" id="user-avatar">
+                            <span id="header-username">Kullanıcı</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu" id="user-dropdown-menu">
+                            <a href="/profile"><i class="fa-solid fa-user"></i> Profilim</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="/" id="link-app" style="display: none;"><i class="fa-solid fa-gamepad"></i> Ana Panel</a>
+                            <a href="/admin/users" id="link-admin" style="display: none;"><i class="fa-solid fa-shield-halved"></i> Admin Panel</a>
+                            <div class="dropdown-divider"></div>
+                            <a href="/logout" class="text-danger"><i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dynamic Content -->
+            <main class="content-area" id="page-content">
+                <div class="loader-container">
+                    <div class="loader"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Chat Widget -->
+    <div id="chat-widget" class="chat-widget">
+        <div class="chat-header" id="chat-header">
+            <div class="chat-header-left">
+                <i class="fa-solid fa-message"></i>
+                <span>Minecraft Chat</span>
+            </div>
+            <div class="chat-header-right">
+                <button class="chat-toggle-btn" id="chat-toggle-btn" title="Küçült/Büyüt">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+        <div class="chat-body" id="chat-body">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-welcome">Minecraft sunucu chat'ine bağlanılıyor...</div>
+            </div>
+        </div>
+        <div class="chat-footer" id="chat-footer">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Mesaj yazın..." />
+            <button class="chat-send-btn" id="chat-send-btn" title="Gönder">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Global UI Elements -->
+    <div id="global-toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+
+    <!-- Global Confirm Modal -->
+    <div id="global-confirm-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                <div class="modal-title" style="color: var(--danger); font-size: 24px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+            <div class="modal-body">
+                <h3 style="margin-top: 0;" id="global-confirm-title">Emin misiniz?</h3>
+                <p id="global-confirm-message" style="color: var(--text-muted); margin-bottom: 20px;">Bu işlemi geri alamazsınız.</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn" style="flex: 1;" onclick="closeModal()">İptal</button>
+                    <button class="btn btn-danger" style="flex: 1;" id="global-confirm-btn">Evet, Onayla</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/layout.js"></script>
+</body>
+</html>

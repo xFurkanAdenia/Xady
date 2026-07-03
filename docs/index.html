@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xady Documentation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>Xady</h1>
+                <p class="version">v1.0.0</p>
+            </div>
+            
+            <nav class="nav">
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <a href="#introduction" class="nav-link">Introduction</a>
+                    <a href="#installation" class="nav-link">Installation</a>
+                    <a href="#quick-start" class="nav-link">Quick Start</a>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Module System</h3>
+                    <a href="#module-basics" class="nav-link">Module Basics</a>
+                    <a href="#module-lifecycle" class="nav-link">Lifecycle</a>
+                    <a href="#module-manifest" class="nav-link">module.yml</a>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Event System</h3>
+                    <a href="#event-basics" class="nav-link">Event Basics</a>
+                    <a href="#event-listener" class="nav-link">Creating Listeners</a>
+                    <a href="#event-priority" class="nav-link">Priority System</a>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Command System</h3>
+                    <a href="#command-basics" class="nav-link">Command Basics</a>
+                    <a href="#command-executor" class="nav-link">Creating Executors</a>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Chat Patterns</h3>
+                    <a href="#chat-patterns" class="nav-link">Pattern Matching</a>
+                    <a href="#chat-examples" class="nav-link">Examples</a>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>API Reference</h3>
+                    <a href="#api-module" class="nav-link">Module Class</a>
+                    <a href="#api-event" class="nav-link">Event System</a>
+                    <a href="#api-command" class="nav-link">Command System</a>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <section id="introduction">
+                <h1>Xady Framework</h1>
+                <p class="lead">Professional module framework for Minecraft bots</p>
+                
+                <div class="info-box">
+                    <p><strong>Xady</strong> is a module system built for Mineflayer-based Minecraft bots, inspired by Spigot API architecture.</p>
+                </div>
+                
+                <h2>Features</h2>
+                <div class="feature-grid">
+                    <div class="feature">
+                        <span class="icon">📦</span>
+                        <h3>Module System</h3>
+                        <p>Spigot-like plugin architecture</p>
+                    </div>
+                    <div class="feature">
+                        <span class="icon">⚡</span>
+                        <h3>Event System</h3>
+                        <p>Decorator-based event handling</p>
+                    </div>
+                    <div class="feature">
+                        <span class="icon">🎯</span>
+                        <h3>Command API</h3>
+                        <p>Define commands via module.yml</p>
+                    </div>
+                    <div class="feature">
+                        <span class="icon">🔌</span>
+                        <h3>Service System</h3>
+                        <p>Inter-module communication</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="installation">
+                <h1>Installation</h1>
+                
+                <h2>Requirements</h2>
+                <ul>
+                    <li>Node.js 18+ (embedded in production)</li>
+                    <li>TypeScript 5+ (for development)</li>
+                </ul>
+                
+                <h2>Directory Structure</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>tree</span>
+                    </div>
+                    <pre><code>%APPDATA%\Xady\
+  ├─ modules\          # Module files (.xext)
+  ├─ config\           # xady.config.json
+  └─ data\             # Module data</code></pre>
+                </div>
+            </section>
+
+            <section id="quick-start">
+                <h1>Quick Start</h1>
+                
+                <h2>1. Create module.yml</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>yaml</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>name: MyModule
+version: 1.0.0
+main: src/index.js
+description: My first module
+author: Your Name
+commands:
+  hello:
+    description: Hello command
+    usage: !hello [name]</code></pre>
+                </div>
+                
+                <h2>2. Module Code</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class MyModule extends Xady.Module {
+    onEnable() {
+        this.getLogger().info("Module enabled!");
+        
+        // Get command from module.yml
+        const cmd = this.getCommand("hello");
+        if (cmd) {
+            // Set executor (class instance)
+            cmd.setExecutor(new HelloCommandExecutor());
+        }
+    }
+    
+    onDisable() {
+        this.getLogger().info("Module disabled!");
+    }
+}
+
+// Command Executor Class
+class HelloCommandExecutor implements Xady.CommandExecutor {
+    onCommand(sender: Xady.CommandSender, command: Xady.PluginCommand, label: string, args: string[]): boolean {
+        const name = args[0] || "World";
+        sender.sendMessage(`Hello, ${name}!`);
+        return true;
+    }
+}</code></pre>
+                </div>
+                
+                <h2>3. Usage</h2>
+                <div class="info-box">
+                    <p>Commands use <code>!</code> prefix in Xady:</p>
+                    <ul>
+                        <li><code>!hello</code> - Displays "Hello, World!"</li>
+                        <li><code>!hello John</code> - Displays "Hello, John!"</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="module-basics">
+                <h1>Module Basics</h1>
+                
+                <p>Every module extends the <code>Xady.Module</code> class:</p>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class Example extends Xady.Module {
+    onLoad() {
+        // Initial loading
+    }
+    
+    onEnable() {
+        // Module enabled
+    }
+    
+    onDisable() {
+        // Module disabled
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="module-lifecycle">
+                <h1>Lifecycle</h1>
+                
+                <div class="info-box">
+                    <h3>Loading Order</h3>
+                    <ol>
+                        <li><code>constructor()</code> - Module loaded</li>
+                        <li><code>onLoad()</code> - Pre-initialization</li>
+                        <li><code>onEnable()</code> - Module enabled</li>
+                    </ol>
+                </div>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class MyModule extends Xady.Module {
+    onLoad() {
+        // Load config, prepare resources
+        this.saveDefaultConfig();
+    }
+    
+    onEnable() {
+        // Register events
+        this.registerEvents(new MyListener());
+        
+        // Setup commands
+        this.setupCommands();
+    }
+    
+    onDisable() {
+        // Cleanup
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="module-manifest">
+                <h1>module.yml</h1>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>yaml</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>name: EconomyModule
+version: 1.0.0
+main: src/index.js
+description: Economy system
+author: YourName
+website: https://example.com
+
+# Commands
+commands:
+  balance:
+    description: Check balance
+    usage: !balance [player]
+  pay:
+    description: Pay money
+    usage: !pay <player> <amount>
+    
+# Dependencies
+dependencies:
+  - CoreModule
+softDependencies:
+  - ShopModule</code></pre>
+                </div>
+            </section>
+
+            <section id="event-basics">
+                <h1>Event System</h1>
+                
+                <p>Xady uses a decorator pattern similar to Spigot API:</p>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>// Listener class implements Listener interface
+class MyListener implements Xady.Listener {
+    @Xady.EventHandler(Xady.EventPriority.NORMAL)
+    onMessage(event: any) {
+        const msg = event.getMessage();
+        console.log("Chat:", msg);
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="event-listener">
+                <h1>Creating Listeners</h1>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class MyModule extends Xady.Module {
+    onEnable() {
+        this.registerEvents(new ChatListener());
+    }
+}
+
+// Listener class must implement Listener interface
+class ChatListener implements Xady.Listener {
+    @Xady.EventHandler(Xady.EventPriority.NORMAL)
+    onChat(event: any) {
+        const msg = event.getMessage();
+        
+        if (msg.includes("hello")) {
+            event.getBot().chat("Hi!");
+        }
+    }
+    
+    @Xady.EventHandler(Xady.EventPriority.HIGH)
+    onPlayerJoin(event: any) {
+        console.log("Player joined!");
+    }
+}</code></pre>
+                </div>
+                
+                <div class="info-box">
+                    <p><strong>Important:</strong> All listener classes must implement <code>Xady.Listener</code> interface for decorators to work correctly.</p>
+                </div>
+            </section>
+
+            <section id="event-priority">
+                <h1>Priority System</h1>
+                
+                <div class="info-box">
+                    <p>Events execute in priority order:</p>
+                    <ul>
+                        <li><code>LOWEST (0)</code> - Executes first</li>
+                        <li><code>LOW (1)</code></li>
+                        <li><code>NORMAL (2)</code> - Default</li>
+                        <li><code>HIGH (3)</code></li>
+                        <li><code>HIGHEST (4)</code></li>
+                        <li><code>MONITOR (5)</code> - Executes last, observation only</li>
+                    </ul>
+                </div>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>@Xady.EventHandler(Xady.EventPriority.LOWEST)
+onEarlyEvent(event: any) {
+    // Runs first
+}
+
+@Xady.EventHandler(Xady.EventPriority.MONITOR)
+onMonitorEvent(event: any) {
+    // Runs last, even if event is cancelled
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="command-basics">
+                <h1>Command System</h1>
+                
+                <p>Commands are defined in <code>module.yml</code> and implemented with executor classes:</p>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class MyModule extends Xady.Module {
+    onEnable() {
+        // Get command from module.yml
+        const cmd = this.getCommand("test");
+        if (cmd) {
+            // Set executor (class instance)
+            cmd.setExecutor(new TestCommandExecutor());
+        }
+    }
+}
+
+// Command Executor Class
+class TestCommandExecutor implements Xady.CommandExecutor {
+    onCommand(sender: Xady.CommandSender, command: Xady.PluginCommand, label: string, args: string[]): boolean {
+        sender.sendMessage("Test command executed!");
+        return true; // Return true if successful
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="command-executor">
+                <h1>Creating Executors</h1>
+                
+                <h2>Basic Executor</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>class BalanceCommandExecutor implements Xady.CommandExecutor {
+    onCommand(sender: Xady.CommandSender, command: Xady.PluginCommand, label: string, args: string[]): boolean {
+        if (args.length === 0) {
+            sender.sendMessage("Your balance: 100 coins");
+            return true;
+        }
+        
+        const player = args[0];
+        sender.sendMessage(`${player}'s balance: 50 coins`);
+        return true;
+    }
+}</code></pre>
+                </div>
+                
+                <h2>Executor with Module Reference</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class EconomyModule extends Xady.Module {
+    private balances: Map<string, number> = new Map();
+    
+    onEnable() {
+        const balCmd = this.getCommand("balance");
+        if (balCmd) {
+            // Pass module instance to executor
+            balCmd.setExecutor(new BalanceExecutor(this));
+        }
+    }
+    
+    getBalance(player: string): number {
+        return this.balances.get(player) || 0;
+    }
+}
+
+class BalanceExecutor implements Xady.CommandExecutor {
+    constructor(private module: EconomyModule) {}
+    
+    onCommand(sender: Xady.CommandSender, command: Xady.PluginCommand, label: string, args: string[]): boolean {
+        const balance = this.module.getBalance("player");
+        sender.sendMessage(`Balance: ${balance} coins`);
+        return true;
+    }
+}</code></pre>
+                </div>
+                
+                <h2>Async Executor</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>class AsyncCommandExecutor implements Xady.CommandExecutor {
+    async onCommand(sender: Xady.CommandSender, command: Xady.PluginCommand, label: string, args: string[]): Promise<boolean> {
+        sender.sendMessage("Processing...");
+        
+        // Async operation
+        await this.doSomethingAsync();
+        
+        sender.sendMessage("Done!");
+        return true;
+    }
+    
+    private async doSomethingAsync(): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, 1000));
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="chat-patterns">
+                <h1>Chat Pattern Matching</h1>
+                
+                <p>Register chat patterns using <code>registerChatPattern</code> and handle them with EventHandler:</p>
+                
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class MyModule extends Xady.Module {
+    onEnable() {
+        // Register chat pattern
+        this.registerChatPattern('coins', /You earned (\d+) coins?/);
+        
+        // Register listener
+        this.registerEvents(new PatternListener());
+    }
+}
+
+// Listener implements Listener interface
+class PatternListener implements Xady.Listener {
+    @Xady.EventHandler(Xady.EventPriority.NORMAL)
+    onChatPattern(event: Xady.ChatPatternEvent) {
+        if (event.getPatternName() === 'coins') {
+            const amount = event.getMatch(1);
+            console.log(`Earned ${amount} coins!`);
+        }
+    }
+}</code></pre>
+                </div>
+                
+                <h2>ChatPatternEvent API</h2>
+                <div class="api-table">
+                    <h3>getPatternName()</h3>
+                    <p>Returns the registered pattern name</p>
+                    <pre><code>const name = event.getPatternName(); // 'coins'</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getMatch(index: number)</h3>
+                    <p>Returns specific regex capture group</p>
+                    <pre><code>const amount = event.getMatch(1); // First capture group</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getFullMatch()</h3>
+                    <p>Returns full matched string</p>
+                    <pre><code>const full = event.getFullMatch(); // "You earned 50 coins"</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getMatches()</h3>
+                    <p>Returns all matches array</p>
+                    <pre><code>const matches = event.getMatches();</code></pre>
+                </div>
+            </section>
+
+            <section id="chat-examples">
+                <h1>Pattern Examples</h1>
+                
+                <h2>Multiple Patterns in One Module</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>export default class EconomyModule extends Xady.Module {
+    private balance: number = 0;
+    
+    onEnable() {
+        // Register patterns
+        this.registerChatPattern('coin_earn', /You earned (\d+) coins?/);
+        this.registerChatPattern('coin_spend', /You spent (\d+) coins?/);
+        this.registerChatPattern('balance', /Balance: \$?(\d+)/);
+        this.registerChatPattern('teleport', /You teleported to (\w+)/);
+        this.registerChatPattern('kill', /(\w+) killed you/);
+        
+        // Register listener
+        this.registerEvents(new EconomyListener(this));
+    }
+    
+    addBalance(amount: number) {
+        this.balance += amount;
+    }
+    
+    getBalance(): number {
+        return this.balance;
+    }
+}
+
+class EconomyListener implements Xady.Listener {
+    constructor(private module: EconomyModule) {}
+    
+    @Xady.EventHandler(Xady.EventPriority.NORMAL)
+    onChatPattern(event: Xady.ChatPatternEvent) {
+        const pattern = event.getPatternName();
+        
+        switch (pattern) {
+            case 'coin_earn':
+                const earned = parseInt(event.getMatch(1) || '0');
+                this.module.addBalance(earned);
+                this.module.getLogger().info(`+${earned} coins`);
+                break;
+                
+            case 'coin_spend':
+                const spent = parseInt(event.getMatch(1) || '0');
+                this.module.addBalance(-spent);
+                this.module.getLogger().info(`-${spent} coins`);
+                break;
+                
+            case 'balance':
+                const bal = parseInt(event.getMatch(1) || '0');
+                this.module.getLogger().info(`Balance: ${bal}`);
+                break;
+                
+            case 'teleport':
+                const location = event.getMatch(1);
+                this.module.getLogger().info(`Teleported to ${location}`);
+                break;
+                
+            case 'kill':
+                const killer = event.getMatch(1);
+                this.module.getLogger().warn(`Killed by ${killer}!`);
+                break;
+        }
+    }
+}</code></pre>
+                </div>
+                
+                <h2>Automatic Cleanup</h2>
+                <div class="info-box">
+                    <p>Registered chat patterns are automatically unregistered when the module is disabled. No manual cleanup required!</p>
+                </div>
+                
+                <h2>Pattern Per Event (Cleaner)</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    </div>
+                    <pre><code>// If you prefer specific event names
+class EconomyListener implements Xady.Listener {
+    @Xady.EventHandler(Xady.EventPriority.NORMAL)
+    onChatPattern(event: Xady.ChatPatternEvent) {
+        // Handle all in one
+        if (event.getPatternName() === 'coin_earn') {
+            this.handleCoinEarn(event);
+        }
+    }
+    
+    private handleCoinEarn(event: Xady.ChatPatternEvent) {
+        const amount = parseInt(event.getMatch(1) || '0');
+        console.log(`+${amount} coins`);
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="api-module">
+                <h1>Module API Reference</h1>
+                
+                <h2>Core Methods</h2>
+                <div class="api-table">
+                    <h3>getServer()</h3>
+                    <p>Returns Mineflayer bot instance (Spigot API compatibility)</p>
+                    <pre><code>const bot = this.getServer();
+bot.chat("Hello!");</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getBot()</h3>
+                    <p>Returns Mineflayer bot instance</p>
+                    <pre><code>const bot = this.getBot();</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getName()</h3>
+                    <p>Returns module name</p>
+                    <pre><code>const name = this.getName();</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getLogger()</h3>
+                    <p>Returns logger</p>
+                    <pre><code>this.getLogger().info("Message");
+this.getLogger().warn("Warning");
+this.getLogger().error("Error");</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getCommand(name: string)</h3>
+                    <p>Returns command from module.yml</p>
+                    <pre><code>const cmd = this.getCommand("test");
+if (cmd) {
+    cmd.setExecutor({ ... });
+}</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>registerEvents(listener: any)</h3>
+                    <p>Registers event listener</p>
+                    <pre><code>this.registerEvents(new MyListener());</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>registerChatPattern(name: string, pattern: RegExp)</h3>
+                    <p>Registers chat pattern for automatic message matching</p>
+                    <pre><code>this.registerChatPattern('coins', /You earned (\d+) coins?/);
+// Listen via ChatPatternEvent</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>unregisterChatPattern(name: string)</h3>
+                    <p>Manually removes a chat pattern</p>
+                    <pre><code>this.unregisterChatPattern('coins');</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getDataFolder()</h3>
+                    <p>Returns module data folder (lazy creation)</p>
+                    <pre><code>const folder = this.getDataFolder();
+// %APPDATA%\Xady\data\ModuleName\</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>getConfig()</h3>
+                    <p>Returns config object</p>
+                    <pre><code>const config = this.getConfig();
+const value = config.myKey;</code></pre>
+                </div>
+                
+                <div class="api-table">
+                    <h3>saveDefaultConfig()</h3>
+                    <p>Copies default config.yml to data folder</p>
+                    <pre><code>this.saveDefaultConfig();</code></pre>
+                </div>
+            </section>
+
+            <section id="api-event">
+                <h1>Event API</h1>
+                
+                <h2>Event Decorator</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                    </div>
+                    <pre><code>@Xady.EventHandler(priority: number)
+methodName(event: EventType) {
+    // Handle event
+}</code></pre>
+                </div>
+                
+                <h2>Priority Values</h2>
+                <div class="api-table">
+                    <ul>
+                        <li><code>Xady.EventPriority.LOWEST</code> = 0</li>
+                        <li><code>Xady.EventPriority.LOW</code> = 1</li>
+                        <li><code>Xady.EventPriority.NORMAL</code> = 2</li>
+                        <li><code>Xady.EventPriority.HIGH</code> = 3</li>
+                        <li><code>Xady.EventPriority.HIGHEST</code> = 4</li>
+                        <li><code>Xady.EventPriority.MONITOR</code> = 5</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section id="api-command">
+                <h1>Command API</h1>
+                
+                <h2>CommandExecutor Interface</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                    </div>
+                    <pre><code>interface CommandExecutor {
+    onCommand(
+        sender: CommandSender,
+        command: PluginCommand,
+        label: string,
+        args: string[]
+    ): boolean | Promise&lt;boolean&gt;;
+}</code></pre>
+                </div>
+                
+                <h2>Implementation</h2>
+                <div class="code-block">
+                    <div class="code-header">
+                        <span>typescript</span>
+                    </div>
+                    <pre><code>// Create executor class
+class MyExecutor implements Xady.CommandExecutor {
+    onCommand(sender, command, label, args): boolean {
+        sender.sendMessage("Command executed!");
+        return true; // Success
+    }
+}
+
+// Register in module
+const cmd = this.getCommand("mycommand");
+if (cmd) {
+    cmd.setExecutor(new MyExecutor());
+}</code></pre>
+                </div>
+                
+                <h2>Return Values</h2>
+                <div class="info-box">
+                    <ul>
+                        <li><code>true</code> - Command executed successfully</li>
+                        <li><code>false</code> - Command failed, shows usage</li>
+                    </ul>
+                </div>
+            </section>
+
+            <footer class="doc-footer">
+                <p>Xady Framework © 2026</p>
+            </footer>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

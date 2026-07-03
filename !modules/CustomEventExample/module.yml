@@ -1,0 +1,6 @@
+name: CustomEventExample
+version: 1.0.0
+main: index.ts
+description: Custom event örneği
+author: Xady
+api-version: "1.0"
