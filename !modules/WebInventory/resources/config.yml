@@ -1,0 +1,3 @@
+# WebInventory Configuration
+enabled: true
+message: "Hello World"

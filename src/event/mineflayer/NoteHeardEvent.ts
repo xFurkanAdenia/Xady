@@ -1,5 +1,5 @@
 import { XadyEvent } from "../XadyEvent";
-import { Block } from "prismarine-block";
+import type Block from "prismarine-block";
 import { Instrument } from "mineflayer";
 
 export class NoteHeardEvent extends XadyEvent {

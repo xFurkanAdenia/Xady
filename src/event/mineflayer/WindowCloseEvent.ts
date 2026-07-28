@@ -1,5 +1,5 @@
 import { XadyEvent } from "../XadyEvent";
-import { Window } from "prismarine-windows";
+import type Window from "prismarine-windows";
 
 export class WindowCloseEvent extends XadyEvent {
     private window: Window;

@@ -14,12 +14,17 @@ export enum ServicePriority {
 }
 
 /**
+ * Service constructor type
+ */
+type ServiceConstructor<T = unknown> = new (...args: never[]) => T;
+
+/**
  * Registered Service - Kayıtlı servis bilgisi
  */
 interface RegisteredService<T> {
-    service: T;
-    provider: BaseModule;
-    priority: ServicePriority;
+    readonly service: T;
+    readonly provider: BaseModule;
+    readonly priority: ServicePriority;
 }
 
 /**
@@ -40,10 +45,10 @@ interface RegisteredService<T> {
  */
 export class ServiceManager {
     // ServiceClass -> RegisteredService[]
-    private services: Map<unknown, RegisteredService<unknown>[]> = new Map();
+    readonly #services = new Map<ServiceConstructor, RegisteredService<unknown>[]>();
     
     // ModuleName -> ServiceClass[]
-    private moduleServices: Map<string, (new (...args: unknown[]) => unknown)[]> = new Map();
+    readonly #moduleServices = new Map<string, ServiceConstructor[]>();
 
     /**
      * Bir servisi register eder
@@ -53,8 +58,8 @@ export class ServiceManager {
      * @param provider Servisi sağlayan modül
      * @param priority Servis önceliği (varsayılan: NORMAL)
      */
-    register<T>(
-        serviceClass: new (...args: unknown[]) => T,
+    public register<T>(
+        serviceClass: ServiceConstructor<T>,
         service: T,
         provider: BaseModule,
         priority: ServicePriority = ServicePriority.NORMAL
@@ -68,11 +73,11 @@ export class ServiceManager {
         }
         
         // Servis listesini al veya oluştur
-        if (!this.services.has(serviceClass)) {
-            this.services.set(serviceClass, []);
+        if (!this.#services.has(serviceClass)) {
+            this.#services.set(serviceClass, []);
         }
         
-        const serviceList = this.services.get(serviceClass)!;
+        const serviceList = this.#services.get(serviceClass)!;
         
         // Servisi ekle
         serviceList.push({
@@ -85,10 +90,10 @@ export class ServiceManager {
         serviceList.sort((a, b) => a.priority - b.priority);
         
         // Modül servislerini takip et
-        if (!this.moduleServices.has(moduleName)) {
-            this.moduleServices.set(moduleName, []);
+        if (!this.#moduleServices.has(moduleName)) {
+            this.#moduleServices.set(moduleName, []);
         }
-        this.moduleServices.get(moduleName)!.push(serviceClass as new (...args: unknown[]) => unknown);
+        this.#moduleServices.get(moduleName)!.push(serviceClass);
         
         console.log(chalk.green(`[ServiceManager] ${moduleName} -> ${serviceClass.name} (Priority: ${ServicePriority[priority]})`));
     }
@@ -99,8 +104,8 @@ export class ServiceManager {
      * @param serviceClass Servis class'ı
      * @param provider Servisi sağlayan modül
      */
-    unregister<T>(serviceClass: new (...args: unknown[]) => T, provider: BaseModule): void {
-        const serviceList = this.services.get(serviceClass);
+    public unregister<T>(serviceClass: ServiceConstructor<T>, provider: BaseModule): void {
+        const serviceList = this.#services.get(serviceClass);
         if (!serviceList) return;
         
         const moduleName = provider.getModuleManifest().getName();
@@ -109,9 +114,9 @@ export class ServiceManager {
         const filtered = serviceList.filter(s => s.provider !== provider);
         
         if (filtered.length === 0) {
-            this.services.delete(serviceClass);
+            this.#services.delete(serviceClass);
         } else {
-            this.services.set(serviceClass, filtered);
+            this.#services.set(serviceClass, filtered);
         }
         
         console.log(chalk.yellow(`[ServiceManager] ${moduleName} unregistered ${serviceClass.name}`));
@@ -122,9 +127,9 @@ export class ServiceManager {
      * 
      * @param provider Modül
      */
-    unregisterAll(provider: BaseModule): void {
+    public unregisterAll(provider: BaseModule): void {
         const moduleName = provider.getModuleManifest().getName();
-        const serviceClasses = this.moduleServices.get(moduleName);
+        const serviceClasses = this.#moduleServices.get(moduleName);
         
         if (!serviceClasses) return;
         
@@ -132,7 +137,7 @@ export class ServiceManager {
             this.unregister(serviceClass, provider);
         }
         
-        this.moduleServices.delete(moduleName);
+        this.#moduleServices.delete(moduleName);
     }
 
     /**
@@ -141,8 +146,8 @@ export class ServiceManager {
      * @param serviceClass Servis class'ı
      * @returns Servis veya undefined
      */
-    getService<T>(serviceClass: new (...args: unknown[]) => T): T | undefined {
-        const serviceList = this.services.get(serviceClass);
+    public getService<T>(serviceClass: ServiceConstructor<T>): T | undefined {
+        const serviceList = this.#services.get(serviceClass);
         if (!serviceList || serviceList.length === 0) return undefined;
         
         // En yüksek öncelikli (ilk) servisi döndür
@@ -156,11 +161,11 @@ export class ServiceManager {
      * @param priority Öncelik
      * @returns Servis veya undefined
      */
-    getServiceByPriority<T>(
-        serviceClass: new (...args: unknown[]) => T,
+    public getServiceByPriority<T>(
+        serviceClass: ServiceConstructor<T>,
         priority: ServicePriority
     ): T | undefined {
-        const serviceList = this.services.get(serviceClass);
+        const serviceList = this.#services.get(serviceClass);
         if (!serviceList) return undefined;
         
         const found = serviceList.find(s => s.priority === priority);
@@ -173,8 +178,8 @@ export class ServiceManager {
      * @param serviceClass Servis class'ı
      * @returns Servis listesi
      */
-    getServices<T>(serviceClass: new (...args: unknown[]) => T): T[] {
-        const serviceList = this.services.get(serviceClass);
+    public getServices<T>(serviceClass: ServiceConstructor<T>): readonly T[] {
+        const serviceList = this.#services.get(serviceClass);
         if (!serviceList) return [];
         
         return serviceList.map(s => s.service as T);
@@ -186,8 +191,8 @@ export class ServiceManager {
      * @param serviceClass Servis class'ı
      * @returns Kayıtlı mı
      */
-    isServiceRegistered<T>(serviceClass: new (...args: unknown[]) => T): boolean {
-        const serviceList = this.services.get(serviceClass);
+    public isServiceRegistered<T>(serviceClass: ServiceConstructor<T>): boolean {
+        const serviceList = this.#services.get(serviceClass);
         return serviceList !== undefined && serviceList.length > 0;
     }
 
@@ -198,8 +203,8 @@ export class ServiceManager {
      * @param provider Modül
      * @returns Sağlıyor mu
      */
-    isProvidedBy<T>(serviceClass: new (...args: unknown[]) => T, provider: BaseModule): boolean {
-        const serviceList = this.services.get(serviceClass);
+    public isProvidedBy<T>(serviceClass: ServiceConstructor<T>, provider: BaseModule): boolean {
+        const serviceList = this.#services.get(serviceClass);
         if (!serviceList) return false;
         
         return serviceList.some(s => s.provider === provider);
@@ -211,8 +216,8 @@ export class ServiceManager {
      * @param serviceClass Servis class'ı
      * @returns Sağlayıcı modül veya undefined
      */
-    getProvider<T>(serviceClass: new (...args: unknown[]) => T): BaseModule | undefined {
-        const serviceList = this.services.get(serviceClass);
+    public getProvider<T>(serviceClass: ServiceConstructor<T>): BaseModule | undefined {
+        const serviceList = this.#services.get(serviceClass);
         if (!serviceList || serviceList.length === 0) return undefined;
         
         return serviceList[0].provider;
@@ -221,16 +226,16 @@ export class ServiceManager {
     /**
      * Tüm kayıtlı servisleri listeler
      */
-    listServices(): void {
+    public listServices(): void {
         console.log(chalk.cyan("\n=== Registered Services ==="));
         
-        if (this.services.size === 0) {
+        if (this.#services.size === 0) {
             console.log(chalk.gray("No services registered."));
             return;
         }
         
-        for (const [serviceClass, serviceList] of this.services.entries()) {
-            console.log(chalk.yellow(`\n${(serviceClass as Function).name}:`));
+        for (const [serviceClass, serviceList] of this.#services.entries()) {
+            console.log(chalk.yellow(`\n${serviceClass.name}:`));
             for (const { provider, priority } of serviceList) {
                 const moduleName = provider.getModuleManifest().getName();
                 console.log(chalk.gray(`  - ${moduleName} (${ServicePriority[priority]})`));

@@ -99,3 +99,10 @@ export { ConsoleCommandEvent } from "../xady/ConsoleCommandEvent"
 export { ConsoleChatEvent } from "../xady/ConsoleChatEvent"
 export { ChatPatternEvent } from "../xady/ChatPatternEvent"
 
+
+// Pathfinder events
+export { GoalReachedEvent } from './pathfinder/GoalReachedEvent';
+export { PathUpdateEvent } from './pathfinder/PathUpdateEvent';
+export { GoalUpdatedEvent } from './pathfinder/GoalUpdatedEvent';
+export { PathResetEvent } from './pathfinder/PathResetEvent';
+export { PathStopEvent } from './pathfinder/PathStopEvent';

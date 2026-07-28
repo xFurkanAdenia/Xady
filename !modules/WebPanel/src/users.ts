@@ -1,5 +1,6 @@
 import { createPool, Pool } from "mysql2/promise";
 import { hashPassword } from "./auth";
+import WebPanelModule from "./index";
 
 let globalPool: Pool | undefined;
 
@@ -30,53 +31,65 @@ export class UserStore {
     }
 
     private getDbConfig() {
-        const cfg = Xady.settings.getConfig() as any;
-        const db = cfg?.auth?.db ?? {};
+        const module = WebPanelModule.getInstance();
+        const cfg = module ? module.getConfig() : null;
         return {
-            enabled: Boolean(db?.enabled),
-            host: String(db?.host ?? "127.0.0.1"),
-            port: Number(db?.port ?? 3306),
-            user: String(db?.user ?? "root"),
-            password: String(db?.password ?? ""),
-            database: String(db?.database ?? "xady"),
+            enabled: cfg ? cfg.getBoolean("auth.db.enabled", false) : false,
+            host: cfg ? cfg.getString("auth.db.host", "127.0.0.1") : "127.0.0.1",
+            port: cfg ? cfg.getInt("auth.db.port", 3306) : 3306,
+            user: cfg ? cfg.getString("auth.db.user", "root") : "root",
+            password: cfg ? cfg.getString("auth.db.password", "") : "",
+            database: cfg ? cfg.getString("auth.db.database", "xady") : "xady",
         };
     }
 
     async #initInternal() {
         const db = this.getDbConfig();
         if (!db.enabled) {
+            console.log('[WebPanel] Database disabled in config');
             return;
         }
 
-        try {
-            if (!globalPool) {
-                globalPool = createPool({
-                    host: db.host,
-                    port: db.port,
-                    user: db.user,
-                    password: db.password,
-                    database: db.database,
-                    connectionLimit: 5,
-                    enableKeepAlive: true,
-                } as any);
-            }
+        // Async olarak çalıştır, hata olsa bile devam et
+        (async () => {
+            try {
+                if (!globalPool) {
+                    globalPool = createPool({
+                        host: db.host,
+                        port: db.port,
+                        user: db.user,
+                        password: db.password,
+                        database: db.database,
+                        connectionLimit: 5,
+                        enableKeepAlive: true,
+                        connectTimeout: 5000,
+                        waitForConnections: false,
+                    } as any);
+                }
 
-            await globalPool.execute(
-                `CREATE TABLE IF NOT EXISTS xady_users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    username VARCHAR(64) NOT NULL UNIQUE,
-                    password_hash VARCHAR(255) NOT NULL,
-                    roles_json TEXT NOT NULL,
-                    banned_until BIGINT DEFAULT NULL,
-                    ban_reason TEXT DEFAULT NULL,
-                    custom_permissions_json TEXT DEFAULT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
-            );
+                // Test connection with timeout
+                const testConnection = await Promise.race([
+                    globalPool.getConnection(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 3000))
+                ]);
+                (testConnection as any).release();
 
-            await globalPool.execute(
-                `CREATE TABLE IF NOT EXISTS xady_sessions (
+                await globalPool.execute(
+                    `CREATE TABLE IF NOT EXISTS xady_users (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        username VARCHAR(64) NOT NULL UNIQUE,
+                        password_hash VARCHAR(255) NOT NULL,
+                        roles_json TEXT NOT NULL,
+                        banned_until BIGINT DEFAULT NULL,
+                        ban_reason TEXT DEFAULT NULL,
+                        custom_permissions_json TEXT DEFAULT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+                );
+
+                await globalPool.execute(
+                    `CREATE TABLE IF NOT EXISTS xady_sessions (
                     token VARCHAR(128) PRIMARY KEY,
                     username VARCHAR(64) NOT NULL,
                     roles_json TEXT NOT NULL,
@@ -119,8 +132,13 @@ export class UserStore {
         } catch (e) {
             try { await globalPool?.end(); } catch {}
             globalPool = undefined;
-            console.error("WebPanel MySQL bağlantısı kurulamadı:", e);
+            console.error(`[WebPanel] (${db.host}:${db.port}:${db.database}) MySQL bağlantısı kurulamadı:`, e);
         }
+        })().catch(err => {
+            console.error("[WebPanel] Database initialization failed (non-blocking):", err);
+        });
+        
+        // Hemen return et, background'da devam etsin
     }
 
     private async ready() {

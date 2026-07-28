@@ -33,7 +33,7 @@
     "@rollup/plugin-alias": "^6.0.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/adm-zip": "^0.5.8",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.1.1",
     "@types/node-notifier": "^8.0.5",
     "@types/yaml": "^1.9.6",
     "dts-bundle-generator": "^9.5.1",

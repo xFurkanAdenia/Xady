@@ -1,0 +1,324 @@
+/* POS Admin Panel */
+.pos-admin-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.pos-admin-container h1 {
+    margin: 0 0 24px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main, #e0e0e0);
+}
+
+/* Tabs */
+.pos-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border, #333);
+}
+
+.pos-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 6px 6px 0 0;
+}
+
+.pos-tab:hover {
+    color: var(--text-main, #e0e0e0);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.pos-tab.active {
+    color: var(--primary, #7c63f5);
+    border-bottom-color: var(--primary, #7c63f5);
+    background: rgba(124, 99, 245, 0.1);
+}
+
+.pos-tab-content {
+    display: none;
+}
+
+.pos-tab-content.active {
+    display: block;
+}
+
+/* Card */
+.pos-card {
+    background: var(--bg-surface, #1e1e1e);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.pos-card h2 {
+    margin: 0 0 20px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.pos-card-header h2 {
+    margin: 0;
+}
+
+/* Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+table thead {
+    background: var(--bg-base, #0a0a0a);
+}
+
+table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+    border-bottom: 2px solid var(--border, #444);
+}
+
+table td {
+    padding: 12px;
+    color: var(--text-main, #e0e0e0);
+    border-bottom: 1px solid var(--border, #333);
+}
+
+table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Form */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    background: var(--bg-base, #0a0a0a);
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    color: var(--text-main, #e0e0e0);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary, #7c63f5);
+    box-shadow: 0 0 0 3px rgba(124, 99, 245, 0.1);
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--primary, #7c63f5);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover, #6952d4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 99, 245, 0.3);
+}
+
+.btn-secondary {
+    background: var(--bg-base, #2a2a2a);
+    color: var(--text-main, #e0e0e0);
+    border: 1px solid var(--border, #444);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover, #3a3a3a);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Badge */
+.pos-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.pos-badge-success {
+    background: rgba(46, 204, 113, 0.2);
+    color: var(--success, #2ecc71);
+}
+
+.pos-badge-pending {
+    background: rgba(124, 99, 245, 0.2);
+    color: var(--primary, #7c63f5);
+}
+
+/* Modal */
+.pos-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.pos-modal-content {
+    background: var(--bg-surface, #1e1e1e);
+    border: 1px solid var(--border, #333);
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.pos-modal-sm {
+    max-width: 400px;
+}
+
+.pos-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.pos-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.pos-modal-close:hover {
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-modal-body {
+    padding: 24px;
+}
+
+.pos-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.pos-balance-info {
+    background: var(--bg-base, #0a0a0a);
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.pos-balance-info div {
+    margin-bottom: 4px;
+}
+
+.pos-empty-text {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted, #666);
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pos-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .pos-tab {
+        white-space: nowrap;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    table th,
+    table td {
+        padding: 8px;
+    }
+
+    .pos-modal-content {
+        max-width: 100%;
+    }
+}

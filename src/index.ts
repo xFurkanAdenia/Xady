@@ -3,8 +3,6 @@ import path from "path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import Client from "./classes/Client";
 import "./types"
-import readline from "readline";
-import { format } from "node:util";
 import chalk from "chalk";
 import { command, error, event, success, xady, module } from "./utils/prefix";
 import Event from "./models/Event";
@@ -15,18 +13,12 @@ import registerBuiltInCommands from "./commands";
 import { XadyEvent } from "./event/XadyEvent";
 import { EventPriority } from "./event/EventPriority";
 import { EventHandler } from "./event/EventHandler";
-import { Listener } from "./event/Listener";
-import { Cancellable } from "./event/Cancellable";
 import * as MineflayerEvents from "./event/mineflayer/EventRegistry";
 import { PluginCommand } from "./command/PluginCommand";
 import { ServicePriority } from "./classes/ServiceManager";
-import { ConsoleCommandEvent } from "./event/xady/ConsoleCommandEvent";
-import { ConsoleChatEvent } from "./event/xady/ConsoleChatEvent";
 import { ChatPatternEvent } from "./event/xady/ChatPatternEvent";
-import { activeModuleStorage } from "./context";
 import XadyModule, { BaseModule } from "./models/BaseModule";
 import AppDataManager from "./utils/appdata";
-import { AsyncLocalStorage } from "async_hooks";
 import { XadyScheduler } from "./classes/XadyScheduler";
 import { WorkerPool, TaskPriority } from "./classes/WorkerPool";
 import { FileConfiguration } from "./classes/FileConfiguration";
@@ -57,6 +49,7 @@ globalThis.Xady = {
     xady, error, success, command, event, module
   }
 }
+
 
 
 // Freeze the API objects to prevent module modifications

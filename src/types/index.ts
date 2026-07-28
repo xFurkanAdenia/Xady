@@ -31,7 +31,7 @@ export interface IModuleManifest {
 
 export interface Bot extends MineflayerBot {
     loadEvents: (dir: string) => void;
-    pathfinder: unknown;
+    pathfinder: Pathfinder;
 }
 
 export type CommandExecute = (bot: Bot, sender: CommandSenderClass, args: string[]) => void | Promise<void>;
@@ -97,6 +97,7 @@ import { ConsoleChatEvent } from "../event/xady/ConsoleChatEvent";
 import { ChatPatternEvent } from "../event/xady/ChatPatternEvent";
 import { WorkerPool as WorkerPoolClass, TaskPriority as TaskPriorityEnum } from "../classes/WorkerPool";
 import { FileConfiguration as FileConfigurationClass } from "../classes/FileConfiguration";
+import { Pathfinder } from "mineflayer-pathfinder";
 
 export { default as XadyModule, BaseModule } from "../models/BaseModule";
 export { default as Event } from "../models/Event";
@@ -175,6 +176,11 @@ declare global {
             
             export type GenericMineflayerEvent = MineflayerEvents.GenericMineflayerEvent;
             export const GenericMineflayerEvent: typeof MineflayerEvents.GenericMineflayerEvent;
+
+            export type GoalReachedEvent = MineflayerEvents.GoalReachedEvent;
+            export const GoalReachedEvent: typeof MineflayerEvents.GoalReachedEvent;
+            export type GoalUpdatedEvent = MineflayerEvents.GoalUpdatedEvent;
+            export const GoalUpdatedEvent: typeof MineflayerEvents.GoalUpdatedEvent;
             export type PlayerChatEvent = MineflayerEvents.PlayerChatEvent;
             export const PlayerChatEvent: typeof MineflayerEvents.PlayerChatEvent;
             export type MessageEvent = MineflayerEvents.MessageEvent;

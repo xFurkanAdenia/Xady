@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "declaration": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "paths": {
+            "WebPanel": [
+                "C:/Users/ev.pc/AppData/Roaming/.xady/libs/WebPanel/index.ts"
+            ],
+            "WebPanel/*": [
+                "C:/Users/ev.pc/AppData/Roaming/.xady/libs/WebPanel/*"
+            ]
+        },
+        "baseUrl": "."
+    },
+    "include": [
+        "src/**/*"
+    ]
+}

@@ -2,15 +2,24 @@
     "compilerOptions": {
         "target": "ES2022",
         "module": "CommonJS",
-        "moduleResolution": "Node",
-        "declaration": true,
-        "declarationDir": "types/",
-        "strict": true,
+        "lib": [
+            "ES2022"
+        ],
         "esModuleInterop": true,
-        "skipLibCheck": true,
+        "allowSyntheticDefaultImports": true,
         "forceConsistentCasingInFileNames": true,
+        "strict": false,
+        "skipLibCheck": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
+        "declaration": false,
+        "outDir": "./build",
+        "rootDir": ".",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "types": [
+            "node"
+        ],
         "paths": {
             "WebPanel": [
                 "C:/Users/ev.pc/AppData/Roaming/.xady/libs/WebPanel/index.ts"
@@ -22,11 +31,12 @@
         "baseUrl": "."
     },
     "include": [
-        "**/*.ts"
+        "**/*.ts",
+        "typings/**/*.d.ts"
     ],
     "exclude": [
         "node_modules",
         "build",
-        "types"
+        "src"
     ]
 }

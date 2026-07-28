@@ -151,11 +151,33 @@
     cursor: pointer;
     text-align: center;
     transition: all 0.2s;
+    position: relative;
 }
 
 .pos-product-quick:hover {
     border-color: var(--primary, #7c63f5);
     transform: translateY(-2px);
+}
+
+.pos-product-quick.selected {
+    border-color: var(--success, #2ecc71);
+    background: rgba(46, 204, 113, 0.1);
+}
+
+.pos-product-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background: var(--success, #2ecc71);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .pos-product-quick-name {
@@ -646,6 +668,9 @@ select.form-control {
                 <div class="pos-balance-card">
                     <span class="pos-balance-label">Bakiye</span>
                     <span class="pos-balance-value" id="pos-balance">0.00⛁</span>
+                    <button class="btn btn-sm btn-success" onclick="showWithdrawModal()" style="margin-top: 8px;">
+                        💰 Para Çek
+                    </button>
                 </div>
             </div>
         </div>
@@ -831,6 +856,34 @@ select.form-control {
         </div>
     </div>
 
+    <!-- Modal: Para Çek -->
+    <div class="pos-modal" id="withdraw-modal" onclick="if(event.target === this) closeWithdrawModal()">
+        <div class="pos-modal-content pos-modal-sm">
+            <div class="pos-modal-header">
+                <h2>💰 Bakiye Çek</h2>
+                <button class="pos-modal-close" onclick="closeWithdrawModal()">&times;</button>
+            </div>
+            <div class="pos-modal-body">
+                <div class="pos-balance-info">
+                    <div><strong>Mevcut Bakiye:</strong> <span id="withdraw-balance">0.00</span>⛁</div>
+                </div>
+                <div class="form-group">
+                    <label>Minecraft Oyuncu Adı</label>
+                    <input type="text" id="withdraw-username" class="form-control" placeholder="xFurkanAdenia">
+                    <small class="form-text">Parayı alacak oyuncu adı</small>
+                </div>
+                <div class="form-group">
+                    <label>Çekilecek Tutar</label>
+                    <input type="number" id="withdraw-amount" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+                </div>
+            </div>
+            <div class="pos-modal-footer">
+                <button class="btn btn-secondary" onclick="closeWithdrawModal()">İptal</button>
+                <button class="btn btn-success" onclick="processWithdraw()">Para Çek</button>
+            </div>
+        </div>
+    </div>
+
     <script>// POS Simple JavaScript
 (function() {
     'use strict';
@@ -844,7 +897,8 @@ select.form-control {
         historyPayments: [],
         eventSource: null,
         tempActions: [], // Modal'da eklenen action'lar
-        editingProductId: null
+        editingProductId: null,
+        selectedProductId: null // Seçili ürün ID'si
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -861,6 +915,52 @@ select.form-control {
         return new Date(timestamp).toLocaleString('tr-TR');
     }
 
+    function showToast(message, type = 'info') {
+        if (window.showToast) {
+            window.showToast(message, type);
+        } else {
+            console.log(`[Toast ${type}]`, message);
+        }
+    }
+
+    function showError(message) {
+        showToast(message, 'error');
+    }
+
+    function showConfirm(message, onConfirm) {
+        const overlay = document.createElement('div');
+        overlay.className = 'pos-modal';
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+            <div class="pos-modal-content pos-modal-sm">
+                <div class="pos-modal-header">
+                    <h2>Onay</h2>
+                </div>
+                <div class="pos-modal-body">
+                    <p style="margin: 0; line-height: 1.6;">${message}</p>
+                </div>
+                <div class="pos-modal-footer">
+                    <button class="btn btn-secondary" id="confirm-cancel">İptal</button>
+                    <button class="btn btn-primary" id="confirm-ok">Onayla</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#confirm-cancel').onclick = () => {
+            document.body.removeChild(overlay);
+        };
+        overlay.querySelector('#confirm-ok').onclick = () => {
+            document.body.removeChild(overlay);
+            onConfirm();
+        };
+        overlay.onclick = (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+            }
+        };
+    }
+
     // ═══════════════════════════════════════════════════════════
     // TABS
     // ═══════════════════════════════════════════════════════════
@@ -875,10 +975,15 @@ select.form-control {
             content.classList.toggle('active', content.id === `tab-${tabName}`);
         });
 
-        if (tabName === 'create') renderProductSelection();
-        else if (tabName === 'products') loadProducts();
-        else if (tabName === 'active') loadActivePayments();
-        else if (tabName === 'history') loadHistoryPayments();
+        if (tabName === 'create') {
+            renderProductSelection();
+        } else if (tabName === 'products') {
+            loadProducts();
+        } else if (tabName === 'active') {
+            loadActivePayments();
+        } else if (tabName === 'history') {
+            loadHistoryPayments();
+        }
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -965,7 +1070,8 @@ select.form-control {
             <div class="pos-product-hint">Hızlı seçim için bir ürün seçin:</div>
             <div class="pos-product-grid">
                 ${state.products.map(p => `
-                    <div class="pos-product-quick" onclick="posSelectQuickProduct('${p.id}')">
+                    <div class="pos-product-quick ${state.selectedProductId === p.id ? 'selected' : ''}" onclick="posSelectQuickProduct('${p.id}')">
+                        ${state.selectedProductId === p.id ? '<div class="pos-product-check">✓</div>' : ''}
                         <div class="pos-product-quick-name">${p.name}</div>
                         <div class="pos-product-quick-price">${formatAmount(p.price)}⛁</div>
                     </div>
@@ -1075,7 +1181,18 @@ select.form-control {
             const isSuccess = payment.status === 'success';
             const refunded = payment.refunds && payment.refunds.length > 0;
             const totalRefunded = payment.totalRefunded || 0;
-            const netAmount = (payment.sendedMoney || payment.amount) - totalRefunded;
+            const paidAmount = payment.sendedMoney || payment.amount;
+            const availableRefund = paidAmount - totalRefunded;
+            const netAmount = paidAmount - totalRefunded;
+            
+            // Ürün bilgisi
+            let productInfo = '';
+            if (payment.productId) {
+                const product = state.products.find(p => p.id === payment.productId);
+                if (product) {
+                    productInfo = `<br>📦 Ürün: ${product.name}`;
+                }
+            }
 
             return `
                 <div class="pos-payment-card status-${payment.status}">
@@ -1094,8 +1211,9 @@ select.form-control {
                         ${payment.sendedMoney ? `<br>💸 Ödenen: ${formatAmount(payment.sendedMoney)}⛁` : ''}
                         ${payment.change > 0 ? `<br>🔄 Para üstü: ${formatAmount(payment.change)}⛁` : ''}
                         ${refunded ? `<br>↩️ İade: ${formatAmount(totalRefunded)}⛁ (Net: ${formatAmount(netAmount)}⛁)` : ''}
+                        ${productInfo}
                     </div>
-                    ${isSuccess ? `
+                    ${isSuccess && availableRefund > 0 ? `
                         <div class="pos-payment-actions">
                             <button class="btn btn-warning btn-sm" onclick="posShowRefundModal('${payment.id}')">
                                 ↩️ İade
@@ -1134,8 +1252,17 @@ select.form-control {
         const product = state.products.find(p => p.id === id);
         if (!product) return;
 
-        document.getElementById('input-amount').value = product.price;
-        document.getElementById('input-description').value = product.name;
+        // Seçili ürünü toggle
+        if (state.selectedProductId === id) {
+            state.selectedProductId = null;
+            document.getElementById('input-amount').value = '';
+        } else {
+            state.selectedProductId = id;
+            document.getElementById('input-amount').value = product.price;
+        }
+        
+        // Render'ı güncelle
+        renderProductSelection();
         document.getElementById('input-username').focus();
     };
 
@@ -1143,9 +1270,10 @@ select.form-control {
         const username = document.getElementById('input-username').value.trim();
         const amount = parseFloat(document.getElementById('input-amount').value);
         const description = document.getElementById('input-description').value.trim();
+        const productId = state.selectedProductId;
 
-        if (!username) return alert('Oyuncu adı gerekli');
-        if (!amount || amount <= 0) return alert('Geçerli bir tutar giriniz');
+        if (!username) return showError('Oyuncu adı gerekli');
+        if (!amount || amount <= 0) return showError('Geçerli bir tutar giriniz');
 
         try {
             const meRes = await fetch('/api/me');
@@ -1157,7 +1285,7 @@ select.form-control {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': meData.csrfToken
                 },
-                body: JSON.stringify({ username, amount, description })
+                body: JSON.stringify({ username, amount, description, productId })
             });
             const data = await res.json();
 
@@ -1165,18 +1293,22 @@ select.form-control {
                 document.getElementById('input-username').value = '';
                 document.getElementById('input-amount').value = '';
                 document.getElementById('input-description').value = '';
+                state.selectedProductId = null;
                 posShowTab('active');
-                if (window.showToast) window.showToast('Ödeme talebi oluşturuldu', 'success');
+                
+                // Mesaj varsa göster (sıra bilgisi)
+                const message = data.message || 'Ödeme talebi oluşturuldu';
+                showToast(message, 'success');
             } else {
-                alert(data.error || 'Hata oluştu');
+                showError(data.error || 'Hata oluştu');
             }
         } catch (error) {
-            alert('Bağlantı hatası');
+            showError('Bağlantı hatası');
         }
     };
 
     window.posCancelPayment = async function(id) {
-        if (!confirm('Bu ödemeyi iptal etmek istediğinize emin misiniz?')) return;
+        showConfirm('Bu ödemeyi iptal etmek istediğinize emin misiniz?', async () => {
 
         try {
             const meRes = await fetch('/api/me');
@@ -1190,13 +1322,14 @@ select.form-control {
 
             if (data.ok) {
                 loadActivePayments();
-                if (window.showToast) window.showToast('Ödeme iptal edildi', 'success');
+                showToast('Ödeme iptal edildi', 'success');
             } else {
-                alert(data.error || 'Hata oluştu');
+                showError(data.error || 'Hata oluştu');
             }
         } catch (error) {
-            alert('Bağlantı hatası');
+            showError('Bağlantı hatası');
         }
+        });
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -1241,8 +1374,8 @@ select.form-control {
         const description = document.getElementById('product-description').value.trim();
         const editId = state.editingProductId;
 
-        if (!name) return alert('Ürün adı gerekli');
-        if (!price || price <= 0) return alert('Geçerli bir fiyat giriniz');
+        if (!name) return showError('Ürün adı gerekli');
+        if (!price || price <= 0) return showError('Geçerli bir fiyat giriniz');
 
         try {
             const meRes = await fetch('/api/me');
@@ -1281,17 +1414,18 @@ select.form-control {
             if (data.ok) {
                 posCloseProductModal();
                 loadProducts();
-                if (window.showToast) window.showToast(editId ? 'Ürün güncellendi' : 'Ürün eklendi', 'success');
+                renderProductSelection();
+                showToast(editId ? 'Ürün güncellendi' : 'Ürün eklendi', 'success');
             } else {
-                alert(data.error || 'Hata oluştu');
+                showError(data.error || 'Hata oluştu');
             }
         } catch (error) {
-            alert('Bağlantı hatası');
+            showError('Bağlantı hatası');
         }
     };
 
     window.posDeleteProduct = async function(id) {
-        if (!confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
+        showConfirm('Bu ürünü silmek istediğinize emin misiniz?', async () => {
 
         try {
             const meRes = await fetch('/api/me');
@@ -1305,13 +1439,15 @@ select.form-control {
 
             if (data.ok) {
                 loadProducts();
-                if (window.showToast) window.showToast('Ürün silindi', 'success');
+                renderProductSelection();
+                showToast('Ürün silindi', 'success');
             } else {
-                alert(data.error || 'Hata oluştu');
+                showError(data.error || 'Hata oluştu');
             }
         } catch (error) {
-            alert('Bağlantı hatası');
+            showError('Bağlantı hatası');
         }
+        });
     };
 
     // ═══════════════════════════════════════════════════════════
@@ -1361,10 +1497,10 @@ select.form-control {
 
         if (type === 'command') {
             value = document.getElementById('action-command').value.trim();
-            if (!value) return alert('Komut girmelisiniz');
+            if (!value) return showError('Komut girmelisiniz');
         } else {
             value = document.getElementById('action-function').value;
-            if (!value) return alert('Fonksiyon seçmelisiniz');
+            if (!value) return showError('Fonksiyon seçmelisiniz');
         }
 
         state.tempActions.push({
@@ -1416,7 +1552,7 @@ select.form-control {
         const amount = parseFloat(document.getElementById('refund-amount').value);
         const reason = document.getElementById('refund-reason').value.trim();
 
-        if (!amount || amount <= 0) return alert('Geçerli bir miktar giriniz');
+        if (!amount || amount <= 0) return showError('Geçerli bir miktar giriniz');
 
         try {
             const meRes = await fetch('/api/me');
@@ -1439,12 +1575,12 @@ select.form-control {
             if (data.ok) {
                 posCloseRefundModal();
                 loadHistoryPayments();
-                if (window.showToast) window.showToast(`${formatAmount(data.refundAmount)}⛁ iade edildi`, 'success');
+                showToast(`${formatAmount(data.refundAmount)}⛁ iade edildi`, 'success');
             } else {
-                alert(data.error || 'Hata oluştu');
+                showError(data.error || 'Hata oluştu');
             }
         } catch (error) {
-            alert('Bağlantı hatası');
+            showError('Bağlantı hatası');
         }
     };
 
@@ -1476,11 +1612,77 @@ select.form-control {
     }
 
     // ═══════════════════════════════════════════════════════════
+    // WITHDRAW (Para Çek)
+    // ═══════════════════════════════════════════════════════════
+    window.showWithdrawModal = function() {
+        const balance = Number(state.balance).toLocaleString('tr-TR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        document.getElementById('withdraw-balance').textContent = balance;
+        document.getElementById('withdraw-username').value = '';
+        document.getElementById('withdraw-amount').value = '';
+        document.getElementById('withdraw-modal').style.display = 'flex';
+    };
+
+    window.closeWithdrawModal = function() {
+        document.getElementById('withdraw-modal').style.display = 'none';
+    };
+
+    window.processWithdraw = async function() {
+        const minecraftUsername = document.getElementById('withdraw-username').value.trim();
+        const amount = parseFloat(document.getElementById('withdraw-amount').value);
+
+        if (!minecraftUsername) return showError('Minecraft oyuncu adı gerekli');
+        if (!amount || amount <= 0) return showError('Geçerli bir tutar giriniz');
+        if (amount > state.balance) return showError('Yetersiz bakiye');
+
+        const amountFormatted = Number(amount).toLocaleString('tr-TR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        showConfirm(`${minecraftUsername} adlı oyuncuya ${amountFormatted}⛁ gönderilecek. Onaylıyor musunuz?`, async () => {
+
+        try {
+            const meRes = await fetch('/api/me');
+            const meData = await meRes.json();
+
+            const res = await fetch('/api/pos/withdraw', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': meData.csrfToken
+                },
+                body: JSON.stringify({ minecraftUsername, amount })
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                state.balance = data.newBalance;
+                const balanceFormatted = Number(state.balance).toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+                document.getElementById('pos-balance').textContent = balanceFormatted + '⛁';
+                closeWithdrawModal();
+                showToast('Para çekme işlemi başarılı', 'success');
+            } else {
+                showError(data.error || 'Hata oluştu');
+            }
+        } catch (error) {
+            showError('Bağlantı hatası');
+        }
+        });
+    };
+
+    // ═══════════════════════════════════════════════════════════
     // INIT
     // ═══════════════════════════════════════════════════════════
-    function init() {
-        loadBalance();
-        loadProducts();
+    async function init() {
+        await loadBalance();
+        await loadProducts(); // Ürünleri yükle
+        renderProductSelection(); // Hemen render et
         loadActivePayments();
         connectSSE();
 
@@ -1497,7 +1699,6 @@ select.form-control {
     } else {
         init();
     }
-})();
-</script>
+})();</script>
 </body>
 </html>

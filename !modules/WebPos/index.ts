@@ -117,30 +117,28 @@ export default class WebPosModule extends Xady.Module {
         this.#listener = new PosMessageListener();
         this.registerEvents(this.#listener);
 
-        // !webPos komutunu kaydet
+        // !webPos komutunu kaydet - Modüler sistem
+        const { WebPosCommandExecutor } = require("./commands/WebPosCommand");
+        const { StartPaymentSubCommand } = require("./commands/StartPaymentSubCommand");
+        const { CancelPaymentSubCommand } = require("./commands/CancelPaymentSubCommand");
+        const { PaymentsSubCommand } = require("./commands/PaymentsSubCommand");
+        const { ReloadSubCommand } = require("./commands/ReloadSubCommand");
+        
+        const subcommands = [
+            new StartPaymentSubCommand(this),
+            new CancelPaymentSubCommand(this),
+            new PaymentsSubCommand(this),
+            new ReloadSubCommand(this)
+        ];
+        
+        const executor = new WebPosCommandExecutor(this, subcommands);
+        
         const cmd = new Xady.PluginCommand("webPos", this)
-            .setExecutor({
-                onCommand: async (sender, command, label, args) => {
-                    const sub = args[0]?.toLowerCase();
-                    if (sub === "reload") {
-                        try {
-                            this.reloadConfig();
-                            const newCfg = buildConfigFromFile(this.getConfig());
-                            this.#posManager.updateConfig(newCfg);
-                            this.#listener.recompile();
-                            sender.sendMessage("[WebPos] Config yeniden yüklendi!");
-                        } catch (e: any) {
-                            sender.sendMessage("[WebPos] Reload hatası: " + (e?.message ?? e));
-                        }
-                        return true;
-                    }
-                    sender.sendMessage("[WebPos] Kullanım: !webPos reload");
-                    return true;
-                }
-            });
+            .setExecutor(executor)
+            .setTabCompleter(executor);
+            
         this.getClient().getCommandManager().registerCommand(cmd);
 
-        console.log("[WebPos] Modül başarıyla yüklendi.");
     }
 
     onDisable(): void {

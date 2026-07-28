@@ -6,6 +6,7 @@ import { html, json, parseCookies, readBody, redirect, sendBuffer, text } from "
 import { UserStore } from "./users";
 import { getDbPool } from "./users";
 import { createConnection } from "mysql2/promise";
+import WebPanelModule from "./index";
 
 type NavItem = { id: string; title: string; path: string; permission?: string; scope?: "app" | "admin" };
 type ViewHandler = (req: IncomingMessage, ctx: HttpHandlerCtx) => Promise<string> | string;
@@ -51,7 +52,10 @@ export class WebPanelServer {
     }
 
     async start() {
-        await this.#users.init();
+        // Non-blocking init
+        this.#users.init().catch(err => {
+            console.error('[WebPanel] User store initialization failed:', err);
+        });
     }
 
     async stop() {
@@ -78,8 +82,28 @@ export class WebPanelServer {
     }
 
     private getRolePermissions(roles: string[], customPermissions: string[] = []) {
-        const cfg = Xady.settings.getConfig() as any;
-        const roleMap = cfg?.auth?.roles ?? {};
+        const module = WebPanelModule.getInstance();
+        const cfg = module ? module.getConfig() : null;
+        
+        // Try multiple ways to get roles config (compatibility with new Configuration system)
+        let roleMap: Record<string, { permissions?: string[] }> = {};
+        if (cfg) {
+            // Try direct get
+            const authRoles = cfg.get("auth.roles");
+            if (authRoles && typeof authRoles === 'object') {
+                roleMap = authRoles as any;
+            } else {
+                // Try getConfigurationSection (new API)
+                const authSection = cfg.getConfigurationSection?.("auth");
+                if (authSection) {
+                    const rolesData = authSection.get?.("roles");
+                    if (rolesData && typeof rolesData === 'object') {
+                        roleMap = rolesData as any;
+                    }
+                }
+            }
+        }
+        
         const perms = new Set<string>();
         for (const role of roles) {
             const r = roleMap?.[role];
@@ -147,8 +171,10 @@ export class WebPanelServer {
                 if (handled) return;
             }
 
-            const cfg = Xady.settings.getConfig() as any;
-            const installed = Boolean(cfg?.web?.installed) && Boolean(cfg?.auth?.db?.enabled);
+            const module = WebPanelModule.getInstance();
+            const cfg = module ? module.getConfig() : null;
+            const installed = cfg ? cfg.getBoolean("web.installed", false) : false;
+            const dbEnabled = cfg ? cfg.getBoolean("auth.db.enabled", false) : false;
 
             if (!installed) {
                 if (u.pathname === "/api/install" && method === "POST") {
@@ -399,6 +425,19 @@ export class WebPanelServer {
                 });
                 // Send immediate retry and comment to keep-alive and bypass initial buffering
                 res.write("retry: 1000\n\n");
+                
+                // Son 50 mesajı hemen gönder
+                const recentMessages = this.#chat.slice(-50);
+                for (const msg of recentMessages) {
+                    const payload = `event: msg\ndata: ${JSON.stringify(msg)}\n\n`;
+                    try { 
+                        res.write(payload);
+                    } catch {}
+                }
+                if (typeof (res as any).flush === 'function') {
+                    (res as any).flush();
+                }
+                
                 this.#sse.add(res);
                 req.on("close", () => {
                     this.#sse.delete(res);
@@ -451,6 +490,9 @@ export class WebPanelServer {
                         bot.chat(txt);
                     }
                 }
+                
+                // Web'den gönderilen mesajı da chat'e ekle (bot echo yapmıyorsa)
+                this.pushChat({ at: Date.now(), text: `<${session.username}> ${txt}`, source: "web" });
                 
                 // Input is no longer manually pushed here; it will be received via bot.on('message') from the server
                 return json(res, 200, { ok: true });
@@ -627,8 +669,9 @@ export class WebPanelServer {
             if (u.pathname === "/api/admin/roles" && method === "GET") {
                 if (!session) return json(res, 401, { ok: false });
                 if (!this.hasPermission(session.roles, session.customPermissions, "admin.roles.read")) return json(res, 403, { ok: false });
-                const cfg = Xady.settings.getConfig() as any;
-                const roles = cfg?.auth?.roles ?? {};
+                const module = WebPanelModule.getInstance();
+                const cfg = module ? module.getConfig() : null;
+                const roles = cfg ? (cfg.get("auth.roles") || {}) : {};
                 return json(res, 200, { ok: true, roles });
             }
 

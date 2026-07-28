@@ -54,6 +54,39 @@ export default class ModuleManager {
             const xadyDistPath       = path.resolve(__dirname, "..");
             const xadyNodeModulesPath = path.resolve(__dirname, "../../node_modules");
 
+            // ── Patch fs.readFileSync for ZIP files ─────────────────────────────────
+            const originalReadFileSync = fs.readFileSync;
+            (fs as any).readFileSync = function(filepath: any, options: any) {
+                const filepathStr = String(filepath);
+                
+                if (filepathStr.includes('.xext') || filepathStr.includes('.xar')) {
+                    const extMatch = filepathStr.match(/(.+?\.(?:xext|xar))[\\/](.+)$/);
+                    if (extMatch) {
+                        const zipPath = extMatch[1];
+                        const internalPath = extMatch[2].replace(/\\/g, '/');
+                        
+                        try {
+                            const AdmZip = require('adm-zip');
+                            const zip = new AdmZip(zipPath);
+                            const entry = zip.getEntry(internalPath);
+                            
+                            if (entry) {
+                                const buffer = entry.getData();
+                                // Return based on encoding
+                                if (options === 'utf8' || options === 'utf-8' || options?.encoding === 'utf8' || options?.encoding === 'utf-8') {
+                                    return buffer.toString('utf8');
+                                }
+                                return buffer;
+                            }
+                        } catch (err) {
+                            // Fall through to original
+                        }
+                    }
+                }
+                
+                return originalReadFileSync.call(fs, filepath, options);
+            };
+
             // ── Yardımcı: ZIP içinde entry ara ──────────────────────────────────────
             const findZipEntry = (zip: AdmZip, internalPath: string) => {
                 const p = internalPath.replace(/\\/g, '/').replace(/\/$/, '');
@@ -116,6 +149,13 @@ export default class ModuleManager {
 
                             if (entry) {
                                 const content = entry.getData().toString('utf8');
+                                
+                                // JSON dosyaları için özel işlem
+                                if (filename.endsWith('.json')) {
+                                    module.exports = JSON.parse(content);
+                                    return;
+                                }
+                                
                                 return module._compile(content, filename);
                             }
 

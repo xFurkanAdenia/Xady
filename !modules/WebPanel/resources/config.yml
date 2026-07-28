@@ -1,0 +1,27 @@
+# WebPanel Configuration
+
+web:
+  enabled: true
+  port: 8787
+  bindHost: "0.0.0.0"
+  installed: false
+
+auth:
+  db:
+    enabled: false
+    host: "localhost"
+    port: 3306
+    user: "root"
+    password: ""
+    database: "xady"
+  
+  roles:
+    admin:
+      permissions:
+        - "*"
+    user:
+      permissions:
+        - "dashboard.view"
+        - "settings.view"
+        - "chat.view"
+        - "chat.send"

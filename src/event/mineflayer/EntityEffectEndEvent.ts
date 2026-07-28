@@ -1,5 +1,5 @@
 import { XadyEvent } from "../XadyEvent";
-import { Entity } from "prismarine-entity";
+import type Entity from "prismarine-entity";
 import { Effect } from "mineflayer";
 
 export class EntityEffectEndEvent extends XadyEvent {

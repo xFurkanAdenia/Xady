@@ -1,5 +1,5 @@
 import { XadyEvent } from "../XadyEvent";
-import { Entity } from "prismarine-entity";
+import type Entity from "prismarine-entity";
 
 export class EntityCriticalEffectEvent extends XadyEvent {
     private entity: Entity;

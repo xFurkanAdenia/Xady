@@ -1,0 +1,5 @@
+name: PathfinderExample
+version: 1.0.0
+main: src/index.ts
+author: Xady
+description: Example module demonstrating pathfinder event handling

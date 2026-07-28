@@ -2,15 +2,31 @@ import chalk from "chalk";
 import Client from "../classes/Client";
 import { error, module, xady } from "./prefix";
 
-export function setupGlobalErrorHandler(getClient: () => Client | undefined) {
-  function handleGlobalError(err: Error | unknown) {
+function isErrorLike(err: unknown): err is Error {
+    return err instanceof Error || (
+        typeof err === 'object' &&
+        err !== null &&
+        'message' in err &&
+        'stack' in err
+    );
+}
+
+function toError(err: unknown): Error {
+    if (isErrorLike(err)) {
+        return err;
+    }
+    return new Error(String(err));
+}
+
+export function setupGlobalErrorHandler(getClient: () => Client | undefined): void {
+  function handleGlobalError(err: unknown): void {
     const client = getClient();
     if (!client) {
       console.error(chalk.red("Kritik Hata (İstemci Başlamadan Önce):"), err);
       return;
     }
     
-    const errorObj = err instanceof Error ? err : new Error(String(err));
+    const errorObj = toError(err);
     const stack = errorObj.stack || "";
     
     const moduleManager = client.getModuleManager();
@@ -43,5 +59,5 @@ export function setupGlobalErrorHandler(getClient: () => Client | undefined) {
   }
 
   process.on("uncaughtException", handleGlobalError);
-  process.on("unhandledRejection", (reason) => handleGlobalError(reason));
+  process.on("unhandledRejection", (reason: unknown) => handleGlobalError(reason));
 }

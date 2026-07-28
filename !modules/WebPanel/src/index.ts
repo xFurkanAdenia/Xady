@@ -3,14 +3,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createServer } from "node:http";
 import { WebPanelServer } from "./webServer";
-import { WebPanelApi } from "./types";
+import { WebPanelApi } from "../types/types/types/index";
 
 
-type NavItem = { 
-    id: string; 
-    title: string; 
-    path: string; 
-    permission?: string; 
+type NavItem = {
+    id: string;
+    title: string;
+    path: string;
+    permission?: string;
     scope?: "app" | "admin";
     children?: NavItem[]; // Dropdown için alt öğeler
     onClick?: string; // JavaScript fonksiyon adı
@@ -50,6 +50,9 @@ export default class WebPanelModule extends Xady.Module {
     onEnable(): void {
         WebPanelModule.#instance = this;
         const client = this.getClient();
+        
+        // Config dosyasını kaydet
+        this.saveDefaultConfig();
 
         this.#nav.set("dashboard", { id: "dashboard", title: "Panel", path: "/", permission: "dashboard.view", scope: "app" });
         this.#nav.set("settings", { id: "settings", title: "Ayarlar", path: "/settings", permission: "settings.view", scope: "app" });
@@ -59,12 +62,12 @@ export default class WebPanelModule extends Xady.Module {
         this.#nav.set("roles", { id: "roles", title: "Roller", path: "/admin/roles", permission: "admin.roles.read", scope: "admin" });
         this.#nav.set("apikeys", { id: "apikeys", title: "API Key Yönetimi", path: "/admin/apikeys", permission: "admin.apikeys.read", scope: "admin" });
 
-        this.#server = new WebPanelServer({ 
-            client, 
-            nav: this.#nav, 
+        this.#server = new WebPanelServer({
+            client,
+            nav: this.#nav,
             views: this.#views,
             permissions: this.#permissions,
-            httpHandlers: this.#httpHandlers 
+            httpHandlers: this.#httpHandlers
         });
 
         this.webApi = {
@@ -84,13 +87,18 @@ export default class WebPanelModule extends Xady.Module {
         this.#chatListener = new WebPanelChatListener(this.#server);
         this.registerEvents(this.#chatListener);
 
-        const webCfg = (Xady.settings.getConfig() as any).web;
-        if (webCfg?.enabled === false) return;
+        // Kendi config'inden oku
+        const cfg = this.getConfig();
+        const webEnabled = cfg.getBoolean("web.enabled", true);
+        if (!webEnabled) return;
+
+        const port = cfg.getInt("web.port", 8787);
+        const bindHost = cfg.getString("web.bindHost", "0.0.0.0");
 
         this.#http = createServer((req, res) => this.#server?.handle(req, res));
         void this.#server.start();
-        this.#http.listen(Number(webCfg?.port ?? 8787), String(webCfg?.bindHost ?? "0.0.0.0"), () => {
-            console.log(`WebPanel: http://${webCfg?.bindHost ?? "127.0.0.1"}:${webCfg?.port ?? 8787}/`);
+        this.#http.listen(port, bindHost, () => {
+            console.log(`WebPanel: http://${bindHost === "0.0.0.0" ? "127.0.0.1" : bindHost}:${port}/`);
         });
     }
 
@@ -194,28 +202,18 @@ class WebPanelChatListener implements Xady.Listener {
     }
 
     @Xady.EventHandler(Xady.EventPriority.NORMAL)
-    onMessage(event: Xady.MessageEvent) {
+    onMessage(event: Xady.events.MessageEvent) {
         let htmlText = "";
         try {
-            // MessageEvent.toString() → düz metin
-            // MessageEvent.toAnsi() → ANSI renkleri
-            // MessageEvent.getJsonMessage() → ChatMessage objesi (toHTML() var)
             const jsonMsg = event.getJsonMessage();
             if (jsonMsg && typeof (jsonMsg as any).toHTML === "function") {
                 htmlText = (jsonMsg as any).toHTML();
             } else {
                 htmlText = event.toString();
-                htmlText = htmlText
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
             }
         } catch {
             try {
-                htmlText = event.toString()
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
+                htmlText = event.toString();
             } catch { return; }
         }
 

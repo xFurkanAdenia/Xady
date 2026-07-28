@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>POS Admin</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="pos-admin-container">
+        <h1>POS Admin Paneli</h1>
+
+        <!-- Tabs -->
+        <div class="pos-tabs">
+            <button class="pos-tab active" data-tab="users" onclick="adminShowTab('users')">
+                👥 Kullanıcılar
+            </button>
+            <button class="pos-tab" data-tab="payments" onclick="adminShowTab('payments')">
+                📋 Tüm Ödemeler
+            </button>
+        </div>
+
+        <!-- Tab: Kullanıcılar -->
+        <div class="pos-tab-content active" id="tab-users">
+            <div class="pos-card">
+                <div class="pos-card-header">
+                    <h2>Kullanıcı Listesi</h2>
+                </div>
+                <div id="users-list"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Tüm Ödemeler -->
+        <div class="pos-tab-content" id="tab-payments">
+            <div class="pos-card">
+                <div class="pos-card-header">
+                    <h2>Tüm Ödemeler</h2>
+                    <input type="text" id="payment-search" class="form-control" placeholder="Ara..." style="max-width: 300px;">
+                </div>
+                <div id="payments-list"></div>
+                <div id="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Bakiye Düzenle -->
+    <div class="pos-modal" id="balance-modal" onclick="if(event.target === this) closeBalanceModal()">
+        <div class="pos-modal-content pos-modal-sm">
+            <div class="pos-modal-header">
+                <h2>Bakiye Düzenle</h2>
+                <button class="pos-modal-close" onclick="closeBalanceModal()">&times;</button>
+            </div>
+            <div class="pos-modal-body">
+                <input type="hidden" id="balance-username">
+                <div class="pos-balance-info" id="balance-info"></div>
+                <div class="form-group">
+                    <label>İşlem</label>
+                    <select id="balance-action" class="form-control">
+                        <option value="set">Belirle</option>
+                        <option value="add">Ekle</option>
+                        <option value="subtract">Çıkar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Miktar</label>
+                    <input type="number" id="balance-amount" class="form-control" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+            <div class="pos-modal-footer">
+                <button class="btn btn-secondary" onclick="closeBalanceModal()">İptal</button>
+                <button class="btn btn-primary" onclick="saveBalance()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

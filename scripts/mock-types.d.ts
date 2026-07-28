@@ -15,9 +15,9 @@ export type Registry = any;
 export type IndexedData = any;
 
 export type EventEmitter = any;
-export default interface TypedEmitter<Events extends Record<string | symbol, any>> extends EventEmitter {
+export default class TypedEmitter<Events extends Record<string | symbol, any> = any> {
     on<E extends keyof Events>(event: E, listener: Events[E]): this;
     once<E extends keyof Events>(event: E, listener: Events[E]): this;
-    emit<E extends keyof Events>(event: E, ...args: Parameters<Events[E] extends (...args: any[]) => any ? Events[E] : never>): boolean;
+    emit<E extends keyof Events>(event: E, ...args: any[]): boolean;
     removeAllListeners<E extends keyof Events>(event?: E): this;
 }

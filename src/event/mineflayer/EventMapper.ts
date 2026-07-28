@@ -377,7 +377,26 @@ export const EVENT_MAP: Record<string, EventMapping> = {
     'clientChatTypeEvent': {
         EventClass: Events.ClientChatTypeEvent as any,
         argsMapper: (...args) => [args[0]]
+    },
+    // Pathfinder events
+    'goal_reached': {
+        EventClass: Events.GoalReachedEvent,
+        argsMapper: (...args) => [args[0]]
+    },
+    'path_update': {
+        EventClass: Events.PathUpdateEvent,
+        argsMapper: (...args) => [args[0]]
+    },
+    'goal_updated': {
+        EventClass: Events.GoalUpdatedEvent,
+        argsMapper: (...args) => [args[0], args[1]]
+    },
+    'path_reset': {
+        EventClass: Events.PathResetEvent,
+        argsMapper: (...args) => [args[0]]
+    },
+    'path_stop': {
+        EventClass: Events.PathStopEvent,
+        argsMapper: () => []
     }
 };
-
-

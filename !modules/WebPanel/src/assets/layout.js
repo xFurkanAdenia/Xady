@@ -248,3 +248,153 @@ window.sendChatMessage = async function(text) {
 window.logout = function() {
     window.location.href = '/logout';
 };
+
+
+// ═══════════════════════════════════════════════════════════
+// CHAT SYSTEM
+// ═══════════════════════════════════════════════════════════
+(function() {
+    let chatEventSource = null;
+    let chatMinimized = false;
+    let hasPermission = false;
+
+    async function checkPermission() {
+        try {
+            const res = await fetch('/api/me');
+            const data = await res.json();
+            hasPermission = data.permissions && data.permissions.includes('chat.view');
+            return hasPermission;
+        } catch {
+            return false;
+        }
+    }
+
+    async function initChat() {
+        // İzin kontrolü
+        if (!(await checkPermission())) {
+            const widget = document.getElementById('chat-widget');
+            if (widget) widget.style.display = 'none';
+            return;
+        }
+
+        const chatWidget = document.getElementById('chat-widget');
+        const chatHeader = document.getElementById('chat-header');
+        const chatToggleBtn = document.getElementById('chat-toggle-btn');
+        const chatInput = document.getElementById('chat-input');
+        const chatSendBtn = document.getElementById('chat-send-btn');
+
+        if (!chatWidget) return;
+
+        // Toggle minimize/maximize
+        const toggleChat = () => {
+            chatMinimized = !chatMinimized;
+            chatWidget.classList.toggle('minimized', chatMinimized);
+        };
+
+        chatHeader.addEventListener('click', (e) => {
+            if (e.target.closest('.chat-toggle-btn')) return;
+            toggleChat();
+        });
+
+        chatToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleChat();
+        });
+
+        // Send message
+        const sendMessage = async () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            const success = await window.sendChatMessage(text);
+            if (success) {
+                chatInput.value = '';
+            }
+        };
+
+        chatSendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // SSE Connection
+        connectChatSSE();
+    }
+
+    function connectChatSSE() {
+        if (chatEventSource) {
+            chatEventSource.close();
+        }
+
+        try {
+            chatEventSource = new EventSource('/api/chat/stream');
+
+            chatEventSource.addEventListener('msg', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    addChatMessage(data.text);
+                } catch (err) {
+                    console.error('[Chat] Parse error:', err);
+                }
+            });
+
+            chatEventSource.addEventListener('open', () => {
+                const welcome = document.querySelector('.chat-welcome');
+                if (welcome) {
+                    welcome.textContent = 'Chat\'e bağlandı';
+                    setTimeout(() => welcome.remove(), 2000);
+                }
+            });
+
+            chatEventSource.addEventListener('error', () => {
+                setTimeout(connectChatSSE, 3000);
+            });
+        } catch (err) {
+            setTimeout(connectChatSSE, 3000);
+        }
+    }
+
+    function addChatMessage(htmlText) {
+        const chatMessages = document.getElementById('chat-messages');
+        if (!chatMessages) return;
+
+        // Remove welcome message
+        const welcome = chatMessages.querySelector('.chat-welcome');
+        if (welcome) welcome.remove();
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message';
+        messageDiv.innerHTML = htmlText;
+
+        chatMessages.appendChild(messageDiv);
+
+        // Auto-scroll
+        const chatBody = document.getElementById('chat-body');
+        if (chatBody) {
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Limit messages (keep last 100)
+        const messages = chatMessages.querySelectorAll('.chat-message');
+        if (messages.length > 100) {
+            messages[0].remove();
+        }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initChat);
+    } else {
+        initChat();
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (chatEventSource) {
+            chatEventSource.close();
+        }
+    });
+})();

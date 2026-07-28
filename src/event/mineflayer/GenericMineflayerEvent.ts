@@ -1,20 +1,20 @@
 import { XadyEvent } from "../XadyEvent";
 
 export class GenericMineflayerEvent extends XadyEvent {
-    private originalEventName: string;
-    private args: unknown[];
+    readonly #originalEventName: string;
+    readonly #args: readonly unknown[];
 
-    constructor(eventName: string, args: unknown[]) {
+    constructor(eventName: string, args: readonly unknown[]) {
         super();
-        this.originalEventName = eventName;
-        this.args = args;
+        this.#originalEventName = eventName;
+        this.#args = Object.freeze([...args]);
     }
 
     getOriginalEventName(): string {
-        return this.originalEventName;
+        return this.#originalEventName;
     }
 
-    getArgs(): unknown[] {
-        return this.args;
+    getArgs(): readonly unknown[] {
+        return this.#args;
     }
 }

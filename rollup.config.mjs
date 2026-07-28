@@ -21,6 +21,7 @@ export default {
         alias({
             entries: [
                 { find: 'minecraft-protocol', replacement: mockPath },
+                { find: 'minecraft-pathfinder', replacement: path.resolve(__dirname, 'node_modules/mineflayer-pathfinder/index.d.ts') },
                 { find: 'mineflayer', replacement: path.resolve(__dirname, 'node_modules/mineflayer/index.d.ts') },
                 { find: 'vec3', replacement: mockPath },
                 { find: 'prismarine-item', replacement: mockPath },

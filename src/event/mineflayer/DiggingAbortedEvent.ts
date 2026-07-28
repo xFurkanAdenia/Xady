@@ -1,5 +1,5 @@
 import { XadyEvent } from "../XadyEvent";
-import { Block } from "prismarine-block";
+import type Block from "prismarine-block";
 
 export class DiggingAbortedEvent extends XadyEvent {
     private block: Block;

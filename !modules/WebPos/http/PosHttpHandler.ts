@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import WebPosModule from ".";
-import PosPayment, { POS_PAYMENT_STATUS } from "./models/PosPayment";
+import WebPosModule from "../index";
+import PosPayment, { POS_PAYMENT_STATUS } from "../models/PosPayment";
 
 type HttpHandler = (req: IncomingMessage, res: ServerResponse, ctx?: any) => boolean | Promise<boolean>;
 

@@ -25,8 +25,8 @@
   },
   "modules": {
     "disabled": [
-      "Melonya",
-      "WebPanel"
+      "webpanel",
+      "webpos"
     ]
   },
   "web": {
@@ -51,9 +51,9 @@
       "user": {
         "permissions": [
           "dashboard.view",
+          "settings.view",
           "chat.view",
-          "chat.send",
-          "settings.view"
+          "chat.send"
         ]
       }
     }

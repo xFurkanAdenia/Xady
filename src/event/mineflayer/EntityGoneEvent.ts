@@ -1,5 +1,5 @@
 import { XadyEvent } from "../XadyEvent";
-import { Entity } from "prismarine-entity";
+import type Entity from "prismarine-entity";
 
 /**
  * Bir entity yok olduğunda tetiklenir
@@ -17,10 +17,10 @@ export class EntityGoneEvent extends XadyEvent {
     }
 
     getEntityId(): number {
-        return this.entity?.id || 0;
+        return (this.entity as any)?.id || 0;
     }
 
     getEntityType(): string {
-        return this.entity?.type || "unknown";
+        return (this.entity as any)?.type || "unknown";
     }
 }

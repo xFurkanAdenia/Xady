@@ -26,6 +26,7 @@ export interface PosPaymentData {
     sendedMoney?: number;
     change?: number;
     createdBy: string; // webpanel kullanıcı adı
+    productId?: string; // Seçili ürün ID'si
     refunds?: RefundRecord[]; // İade geçmişi
     totalRefunded?: number; // Toplam iade edilen
 }
@@ -54,6 +55,7 @@ export default class PosPayment {
     getSendedMoney() { return this.#data.sendedMoney; }
     getChange() { return this.#data.change; }
     getCreatedBy() { return this.#data.createdBy; }
+    getProductId() { return this.#data.productId; }
     getRefunds() { return this.#data.refunds || []; }
     getTotalRefunded() { return this.#data.totalRefunded || 0; }
     getNetAmount() { 

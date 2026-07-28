@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>POS Admin</title>
+    <style>/* POS Admin Panel */
+.pos-admin-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.pos-admin-container h1 {
+    margin: 0 0 24px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main, #e0e0e0);
+}
+
+/* Tabs */
+.pos-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border, #333);
+}
+
+.pos-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 6px 6px 0 0;
+}
+
+.pos-tab:hover {
+    color: var(--text-main, #e0e0e0);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.pos-tab.active {
+    color: var(--primary, #7c63f5);
+    border-bottom-color: var(--primary, #7c63f5);
+    background: rgba(124, 99, 245, 0.1);
+}
+
+.pos-tab-content {
+    display: none;
+}
+
+.pos-tab-content.active {
+    display: block;
+}
+
+/* Card */
+.pos-card {
+    background: var(--bg-surface, #1e1e1e);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.pos-card h2 {
+    margin: 0 0 20px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.pos-card-header h2 {
+    margin: 0;
+}
+
+/* Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+table thead {
+    background: var(--bg-base, #0a0a0a);
+}
+
+table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+    border-bottom: 2px solid var(--border, #444);
+}
+
+table td {
+    padding: 12px;
+    color: var(--text-main, #e0e0e0);
+    border-bottom: 1px solid var(--border, #333);
+}
+
+table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Form */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    background: var(--bg-base, #0a0a0a);
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    color: var(--text-main, #e0e0e0);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary, #7c63f5);
+    box-shadow: 0 0 0 3px rgba(124, 99, 245, 0.1);
+}
+
+select.form-control {
+    cursor: pointer;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: var(--primary, #7c63f5);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover, #6952d4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 99, 245, 0.3);
+}
+
+.btn-secondary {
+    background: var(--bg-base, #2a2a2a);
+    color: var(--text-main, #e0e0e0);
+    border: 1px solid var(--border, #444);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover, #3a3a3a);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Badge */
+.pos-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.pos-badge-success {
+    background: rgba(46, 204, 113, 0.2);
+    color: var(--success, #2ecc71);
+}
+
+.pos-badge-pending {
+    background: rgba(124, 99, 245, 0.2);
+    color: var(--primary, #7c63f5);
+}
+
+/* Modal */
+.pos-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.pos-modal-content {
+    background: var(--bg-surface, #1e1e1e);
+    border: 1px solid var(--border, #333);
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.pos-modal-sm {
+    max-width: 400px;
+}
+
+.pos-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border, #333);
+}
+
+.pos-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.pos-modal-close:hover {
+    color: var(--text-main, #e0e0e0);
+}
+
+.pos-modal-body {
+    padding: 24px;
+}
+
+.pos-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border, #333);
+}
+
+.pos-balance-info {
+    background: var(--bg-base, #0a0a0a);
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.pos-balance-info div {
+    margin-bottom: 4px;
+}
+
+.pos-empty-text {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted, #666);
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pos-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .pos-tab {
+        white-space: nowrap;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    table th,
+    table td {
+        padding: 8px;
+    }
+
+    .pos-modal-content {
+        max-width: 100%;
+    }
+}
+</style>
+</head>
+<body>
+    <div class="pos-admin-container">
+        <h1>POS Admin Paneli</h1>
+
+        <!-- Tabs -->
+        <div class="pos-tabs">
+            <button class="pos-tab active" data-tab="users" onclick="adminShowTab('users')">
+                👥 Kullanıcılar
+            </button>
+            <button class="pos-tab" data-tab="payments" onclick="adminShowTab('payments')">
+                📋 Tüm Ödemeler
+            </button>
+        </div>
+
+        <!-- Tab: Kullanıcılar -->
+        <div class="pos-tab-content active" id="tab-users">
+            <div class="pos-card">
+                <div class="pos-card-header">
+                    <h2>Kullanıcı Listesi</h2>
+                </div>
+                <div id="users-list"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Tüm Ödemeler -->
+        <div class="pos-tab-content" id="tab-payments">
+            <div class="pos-card">
+                <div class="pos-card-header">
+                    <h2>Tüm Ödemeler</h2>
+                    <input type="text" id="payment-search" class="form-control" placeholder="Ara..." style="max-width: 300px;">
+                </div>
+                <div id="payments-list"></div>
+                <div id="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Bakiye Düzenle -->
+    <div class="pos-modal" id="balance-modal" onclick="if(event.target === this) closeBalanceModal()">
+        <div class="pos-modal-content pos-modal-sm">
+            <div class="pos-modal-header">
+                <h2>Bakiye Düzenle</h2>
+                <button class="pos-modal-close" onclick="closeBalanceModal()">&times;</button>
+            </div>
+            <div class="pos-modal-body">
+                <input type="hidden" id="balance-username">
+                <div class="pos-balance-info" id="balance-info"></div>
+                <div class="form-group">
+                    <label>İşlem</label>
+                    <select id="balance-action" class="form-control">
+                        <option value="set">Belirle</option>
+                        <option value="add">Ekle</option>
+                        <option value="subtract">Çıkar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Miktar</label>
+                    <input type="number" id="balance-amount" class="form-control" placeholder="0.00" step="0.01">
+                </div>
+            </div>
+            <div class="pos-modal-footer">
+                <button class="btn btn-secondary" onclick="closeBalanceModal()">İptal</button>
+                <button class="btn btn-primary" onclick="saveBalance()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>(function() {
+    'use strict';
+
+    const state = {
+        activeTab: 'users',
+        users: [],
+        payments: [],
+        currentPage: 1,
+        totalPages: 1
+    };
+
+    // Tabs
+    window.adminShowTab = function(tabName) {
+        state.activeTab = tabName;
+
+        document.querySelectorAll('.pos-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        });
+
+        document.querySelectorAll('.pos-tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === `tab-${tabName}`);
+        });
+
+        if (tabName === 'users') loadUsers();
+        else if (tabName === 'payments') loadPayments();
+    };
+
+    // Load Users
+    async function loadUsers() {
+        try {
+            const res = await fetch('/api/pos/admin/users');
+            const data = await res.json();
+            if (data.ok) {
+                state.users = data.users;
+                renderUsers();
+            }
+        } catch (error) {
+            console.error('[Admin] Users error:', error);
+        }
+    }
+
+    function renderUsers() {
+        const container = document.getElementById('users-list');
+        if (!container) return;
+
+        if (state.users.length === 0) {
+            container.innerHTML = '<div class="pos-empty-text">Henüz kullanıcı yok</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kullanıcı</th>
+                        <th>Bakiye</th>
+                        <th>Ürün Sayısı</th>
+                        <th>Kayıt Tarihi</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.users.map(user => `
+                        <tr>
+                            <td>${user.username}</td>
+                            <td>${formatAmount(user.balance)}⛁</td>
+                            <td>${user.productCount}</td>
+                            <td>${formatTime(user.createdAt)}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="showBalanceModal('${user.username}', ${user.balance})">
+                                    Bakiye Düzenle
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="showUserPayments('${user.username}')">
+                                    Ödemeler
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // Load Payments
+    async function loadPayments(page = 1, search = '') {
+        try {
+            const res = await fetch(`/api/pos/admin/payments?page=${page}&limit=20&search=${encodeURIComponent(search)}`);
+            const data = await res.json();
+            if (data.ok) {
+                state.payments = data.payments;
+                state.currentPage = data.pagination.page;
+                state.totalPages = data.pagination.totalPages;
+                renderPayments();
+                renderPagination(data.pagination);
+            }
+        } catch (error) {
+            console.error('[Admin] Payments error:', error);
+        }
+    }
+
+    function renderPayments() {
+        const container = document.getElementById('payments-list');
+        if (!container) return;
+
+        if (state.payments.length === 0) {
+            container.innerHTML = '<div class="pos-empty-text">Ödeme bulunamadı</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Oyuncu</th>
+                        <th>Tutar</th>
+                        <th>Durum</th>
+                        <th>Oluşturan</th>
+                        <th>Tarih</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${state.payments.map(payment => `
+                        <tr>
+                            <td>${payment.username}</td>
+                            <td>${formatAmount(payment.amount)}⛁</td>
+                            <td><span class="pos-badge pos-badge-${payment.status === 'success' ? 'success' : 'pending'}">${payment.status}</span></td>
+                            <td>${payment.createdBy}</td>
+                            <td>${formatTime(payment.completedAt || payment.createdAt)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function renderPagination(pagination) {
+        const container = document.getElementById('pagination');
+        if (!container) return;
+
+        if (pagination.totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let pages = '';
+        for (let i = 1; i <= pagination.totalPages; i++) {
+            pages += `<button class="btn btn-sm ${i === pagination.page ? 'btn-primary' : 'btn-secondary'}" onclick="loadPayments(${i}, document.getElementById('payment-search').value)">${i}</button> `;
+        }
+
+        container.innerHTML = `<div style="margin-top: 20px; text-align: center;">${pages}</div>`;
+    }
+
+    // Balance Modal
+    window.showBalanceModal = function(username, currentBalance) {
+        document.getElementById('balance-username').value = username;
+        document.getElementById('balance-info').innerHTML = `
+            <div><strong>Kullanıcı:</strong> ${username}</div>
+            <div><strong>Mevcut Bakiye:</strong> ${formatAmount(currentBalance)}⛁</div>
+        `;
+        document.getElementById('balance-amount').value = '';
+        document.getElementById('balance-modal').style.display = 'flex';
+    };
+
+    window.closeBalanceModal = function() {
+        document.getElementById('balance-modal').style.display = 'none';
+    };
+
+    window.saveBalance = async function() {
+        const username = document.getElementById('balance-username').value;
+        const action = document.getElementById('balance-action').value;
+        const amount = parseFloat(document.getElementById('balance-amount').value);
+
+        if (!amount || amount <= 0) return alert('Geçerli bir miktar giriniz');
+
+        try {
+            const meRes = await fetch('/api/me');
+            const meData = await meRes.json();
+
+            const res = await fetch(`/api/pos/admin/users/${username}/balance`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': meData.csrfToken
+                },
+                body: JSON.stringify({ action, amount })
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                closeBalanceModal();
+                loadUsers();
+                if (window.showToast) window.showToast('Bakiye güncellendi', 'success');
+            } else {
+                alert(data.error || 'Hata oluştu');
+            }
+        } catch (error) {
+            alert('Bağlantı hatası');
+        }
+    };
+
+    window.showUserPayments = function(username) {
+        adminShowTab('payments');
+        document.getElementById('payment-search').value = username;
+        loadPayments(1, username);
+    };
+
+    // Utils
+    function formatAmount(amount) {
+        return Number(amount).toLocaleString('tr-TR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function formatTime(timestamp) {
+        return new Date(timestamp).toLocaleString('tr-TR');
+    }
+
+    // Search
+    let searchTimeout;
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('payment-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadPayments(1, e.target.value);
+                }, 500);
+            });
+        }
+    });
+
+    // Init
+    function init() {
+        loadUsers();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+</script>
+</body>
+</html>

@@ -145,11 +145,33 @@
     cursor: pointer;
     text-align: center;
     transition: all 0.2s;
+    position: relative;
 }
 
 .pos-product-quick:hover {
     border-color: var(--primary, #7c63f5);
     transform: translateY(-2px);
+}
+
+.pos-product-quick.selected {
+    border-color: var(--success, #2ecc71);
+    background: rgba(46, 204, 113, 0.1);
+}
+
+.pos-product-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background: var(--success, #2ecc71);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .pos-product-quick-name {

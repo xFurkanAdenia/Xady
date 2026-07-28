@@ -202,12 +202,12 @@ export class CliManager {
                       const h = hits[0] as string;
                       return this.applyInlineCompletion(h + (h.endsWith("/") ? "" : " "), requestedToken);
                   }
-                  const lcp = this.longestCommonPrefix(hits);
+                  const lcp = this.longestCommonPrefix([...hits]);
                   if (lcp.length > requestedToken.length) {
                       return this.applyInlineCompletion(lcp, requestedToken);
                   }
                   if (hits.length > 1) {
-                      this.showCompletionPanel(hits);
+                      this.showCompletionPanel([...hits]);
                   }
               } catch (e) {
                   // ignore

@@ -12,113 +12,158 @@ import { GenericMineflayerEvent } from "../event/mineflayer/GenericMineflayerEve
 import { EVENT_MAP } from "../event/mineflayer/EventMapper";
 import { ServiceManager } from "./ServiceManager";
 import { ChatPatternEvent } from "../event/xady/ChatPatternEvent";
+import { pathfinder } from "mineflayer-pathfinder";
+import type BaseModule from "../models/BaseModule";
+
+type ForbiddenBotMethod = 
+    | "on" | "once" | "addListener" | "prependListener" | "prependOnceListener"
+    | "removeListener" | "removeAllListeners" | "off" | "emit"
+    | "end" | "quit" | "_client";
+
+type ForbiddenClientMethod = 
+    | 'getModuleManager' | 'getEventManager' | 'getCommandManager' 
+    | 'getServiceManager' | 'startBot' | 'handleReconnect'
+    | 'registerPatternOwner' | 'unregisterPatternOwner';
+
+interface ReconnectConfig {
+    maxReconnectAttempts?: number;
+    reconnectDelay?: number;
+}
+
+interface BotConfig extends ReconnectConfig {
+    username?: string;
+    host?: string;
+    port?: number;
+    version?: string;
+}
+
+interface GlobalXady {
+    settings?: {
+        getConfig(): {
+            bot?: BotConfig;
+        };
+    };
+}
+
+declare const globalThis: typeof global & {
+    Xady?: GlobalXady;
+};
 
 export default class Client extends EventEmitter {
-    private bot?: Bot;
-    private safeBot?: Bot;
-    private botOptions?: BotOptions;
-    private reconnectAttempts: number = 0;
-    private reconnectTimeout?: NodeJS.Timeout;
-    #execDir: string;
-    #moduleManager: ModuleManager;
-    #commandManager: CommandManager;
-    #consoleCommandSender: ConsoleCommandSender;
-    #eventManager: EventManager;
-    #serviceManager: ServiceManager;
-    private patternOwners: Map<string, import("../models/BaseModule").default> = new Map();
+    #bot?: Bot;
+    #safeBot?: Bot;
+    #botOptions?: BotOptions;
+    #reconnectAttempts: number;
+    #reconnectTimeout?: NodeJS.Timeout;
+    readonly #execDir: string;
+    readonly #moduleManager: ModuleManager;
+    readonly #commandManager: CommandManager;
+    readonly #consoleCommandSender: ConsoleCommandSender;
+    readonly #eventManager: EventManager;
+    readonly #serviceManager: ServiceManager;
+    readonly #patternOwners: Map<string, BaseModule>;
 
     constructor(execDir: string) {
         super();
+        this.#reconnectAttempts = 0;
         this.#eventManager = new EventManager();
         this.#serviceManager = new ServiceManager();
         this.#moduleManager = new ModuleManager(this);
         this.#commandManager = new CommandManager(this);
         this.#execDir = execDir;
         this.#consoleCommandSender = new ConsoleCommandSender(this, "Console");
+        this.#patternOwners = new Map();
     }
-    startBot(options: BotOptions) {
-        if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
-        this.botOptions = options;
-        this.bot = createBot(this, options);
+    startBot(options: BotOptions): void {
+        if (this.#reconnectTimeout) clearTimeout(this.#reconnectTimeout);
+        this.#botOptions = options;
+        this.#bot = createBot(this, options);
 
         // Mineflayer adds these methods via prismarine-chat plugin later in the lifecycle.
         // We need to safely intercept them.
-        const bot = this.bot as any;
+        const bot = this.#bot as Bot & {
+            _internalAddChatPattern?: (name: string, pattern: RegExp, options: { parse: boolean; repeat: boolean }) => void;
+            _internalAddChatPatternSet?: (name: string, patterns: RegExp[], options: { parse: boolean; repeat: boolean }) => void;
+            _internalRemoveChatPattern?: (name: string) => void;
+            addChatPattern?: (name: string, pattern: RegExp, options?: { parse?: boolean; repeat?: boolean }) => void;
+            addChatPatternSet?: (name: string, patterns: RegExp[], options?: { parse?: boolean; repeat?: boolean }) => void;
+            removeChatPattern?: (name: string) => void;
+            setMaxListeners: (n: number) => void;
+        };
 
         // Sınırsız event listener limitini artır, modüller çok fazla event eklediğinde "MaxListenersExceededWarning" vermesin
         bot.setMaxListeners(0);
 
-        if (typeof bot.addChatPattern === "function") {
-            bot._internalAddChatPattern = bot.addChatPattern.bind(bot);
-            bot._internalAddChatPatternSet = bot.addChatPatternSet.bind(bot);
-            bot._internalRemoveChatPattern = bot.removeChatPattern.bind(bot);
+        this.#bot.loadPlugin(pathfinder);
 
-            bot.addChatPattern = () => { throw new Error("bot.addChatPattern is disabled for security. Use module.registerChatPattern() instead."); };
-            bot.addChatPatternSet = () => { throw new Error("bot.addChatPatternSet is disabled for security. Use module.registerChatPattern() instead."); };
-            bot.removeChatPattern = () => { throw new Error("bot.removeChatPattern is disabled for security. Use module.unregisterChatPattern() instead."); };
+        const interceptChatPatternMethods = (): void => {
+            if (typeof bot.addChatPattern === "function") {
+                bot._internalAddChatPattern = bot.addChatPattern.bind(bot);
+                bot._internalAddChatPatternSet = bot.addChatPatternSet?.bind(bot);
+                bot._internalRemoveChatPattern = bot.removeChatPattern?.bind(bot);
+                bot.addChatPattern = () => { throw new Error("bot.addChatPattern is disabled for security. Use module.registerChatPattern() instead."); };
+                bot.addChatPatternSet = () => { throw new Error("bot.addChatPatternSet is disabled for security. Use module.registerChatPattern() instead."); };
+                bot.removeChatPattern = () => { throw new Error("bot.removeChatPattern is disabled for security. Use module.unregisterChatPattern() instead."); };
+            }
+        };
+
+        if (typeof bot.addChatPattern === "function") {
+            interceptChatPatternMethods();
         } else {
             // Wait for the plugin to load them
             bot.once('inject_allowed', () => {
-                if (typeof bot.addChatPattern === "function") {
-                    bot._internalAddChatPattern = bot.addChatPattern.bind(bot);
-                    bot._internalAddChatPatternSet = bot.addChatPatternSet.bind(bot);
-                    bot._internalRemoveChatPattern = bot.removeChatPattern.bind(bot);
-
-                    bot.addChatPattern = () => { throw new Error("bot.addChatPattern is disabled for security. Use module.registerChatPattern() instead."); };
-                    bot.addChatPatternSet = () => { throw new Error("bot.addChatPatternSet is disabled for security. Use module.registerChatPattern() instead."); };
-                    bot.removeChatPattern = () => { throw new Error("bot.removeChatPattern is disabled for security. Use module.unregisterChatPattern() instead."); };
-                }
+                interceptChatPatternMethods();
             });
         }
 
-        this.safeBot = new Proxy(this.bot, {
-            get(target, prop) {
-                const forbidden = [
+        this.#safeBot = new Proxy(this.#bot, {
+            get(target: Bot, prop: string | symbol): unknown {
+                const forbidden: readonly ForbiddenBotMethod[] = [
                     "on", "once", "addListener", "prependListener", "prependOnceListener",
                     "removeListener", "removeAllListeners", "off", "emit",
-                    "end", "quit"
+                    "end", "quit", "_client"
                 ];
-                if (typeof prop === "string" && forbidden.includes(prop)) {
+                if (typeof prop === "string" && forbidden.includes(prop as ForbiddenBotMethod)) {
                     return () => { throw new Error(`Security Exception: bot.${prop} is blocked. Use Xady module events/methods instead.`); };
                 }
                 const value = Reflect.get(target, prop);
                 return typeof value === "function" ? value.bind(target) : value;
             },
-            set(target, prop, value) {
+            set(): boolean {
                 console.warn(chalk.red(`[Güvenlik] Modül bağlamından bot nesnesinin özellikleri değiştirilemez.`));
                 return false;
             },
-            defineProperty(target, prop, descriptor) {
+            defineProperty(): boolean {
                 return false;
             },
-            deleteProperty(target, prop) {
+            deleteProperty(): boolean {
                 return false;
             },
-            setPrototypeOf(target, prototype) {
+            setPrototypeOf(): boolean {
                 return false;
             },
-            ownKeys(target) {
+            ownKeys(target: Bot): ArrayLike<string | symbol> {
                 // Hide forbidden properties in reflection
-                const forbidden = [
+                const forbidden: readonly ForbiddenBotMethod[] = [
                     "on", "once", "addListener", "removeListener", "removeAllListeners", "emit",
                     "end", "quit", "_client"
                 ];
-                return Reflect.ownKeys(target).filter(k => typeof k !== "string" || !forbidden.includes(k));
+                return Reflect.ownKeys(target).filter(k => typeof k !== "string" || !forbidden.includes(k as ForbiddenBotMethod));
             },
-            getOwnPropertyDescriptor(target, prop) {
-                const forbidden = [
+            getOwnPropertyDescriptor(target: Bot, prop: string | symbol): PropertyDescriptor | undefined {
+                const forbidden: readonly ForbiddenBotMethod[] = [
                     "on", "once", "addListener", "removeListener", "removeAllListeners", "emit",
                     "end", "quit", "_client"
                 ];
-                if (typeof prop === "string" && forbidden.includes(prop)) {
+                if (typeof prop === "string" && forbidden.includes(prop as ForbiddenBotMethod)) {
                     return undefined;
                 }
                 return Reflect.getOwnPropertyDescriptor(target, prop);
             }
         });
 
-        const originalEmit = this.bot.emit.bind(this.bot);
-        this.bot.emit = (eventName: string | symbol, ...args: any[]) => {
+        const originalEmit = this.#bot.emit.bind(this.#bot);
+        this.#bot.emit = (eventName: string | symbol, ...args: readonly unknown[]): boolean => {
             const strName = String(eventName);
             try {
                 const mapping = EVENT_MAP[strName];
@@ -134,43 +179,46 @@ export default class Client extends EventEmitter {
 
                     console.log("[DEBUG] Chat Pattern Fired:", patternName);
 
-                    const matches = args[0][0];
-                    const owner = this.getPatternOwner(patternName);
+                    const firstArg = args[0];
+                    if (Array.isArray(firstArg) && firstArg.length > 0) {
+                        const matches = firstArg as RegExpMatchArray;
+                        const owner = this.getPatternOwner(patternName);
 
-                    console.log("[DEBUG] Owner:", owner?.getName?.());
+                        console.log("[DEBUG] Owner:", owner?.getName?.());
 
-                    if (owner) {
-                        const chatPatternEvent = new ChatPatternEvent(
-                            patternName,
-                            matches,
-                            owner
-                        );
+                        if (owner) {
+                            const chatPatternEvent = new ChatPatternEvent(
+                                patternName,
+                                matches,
+                                owner
+                            );
 
-                        this.#eventManager.callEvent(chatPatternEvent);
+                            this.#eventManager.callEvent(chatPatternEvent);
+                        }
                     }
                 } else {
-                    const generic = new GenericMineflayerEvent(strName, args);
+                    const generic = new GenericMineflayerEvent(strName, [...args]);
                     this.#eventManager.callEvent(generic);
                 }
             } catch (err) {
                 console.error(xady + error + chalk.redBright(`[EventBus] "${strName}" eventi islenirken hata olustu:`), err);
             }
-            return originalEmit(eventName as any, ...args);
+            return originalEmit(eventName as keyof import("mineflayer").BotEvents, ...(args as Parameters<import("mineflayer").BotEvents[keyof import("mineflayer").BotEvents]>));
         };
 
-        this.emit("botCreate")
-        this.bot.once("spawn", () => {
-            this.reconnectAttempts = 0;
+        this.emit("botCreate");
+        this.#bot.once("spawn", () => {
+            this.#reconnectAttempts = 0;
 
             // Re-apply all chat patterns from all modules to the new bot instance
             for (const [, module] of this.#moduleManager.getModules()) {
-                const patterns = (module as any).getChatPatterns?.() || new Map<string, RegExp>();
+                const patterns = (module as BaseModule & { getChatPatterns?: () => Map<string, RegExp> }).getChatPatterns?.() || new Map<string, RegExp>();
                 for (const [name, pattern] of patterns) {
                     try {
                         // Güvenli silme: aynı isme sahip pattern varsa kaldır (duplikasyon engelleme)
-                        try { (this.bot as any)._internalRemoveChatPattern(name); } catch (e) { }
+                        try { (this.#bot as Bot & { _internalRemoveChatPattern?: (name: string) => void })._internalRemoveChatPattern?.(name); } catch (e) { }
 
-                        (this.bot as any)._internalAddChatPattern(name, pattern, { parse: true, repeat: true });
+                        (this.#bot as Bot & { _internalAddChatPattern?: (name: string, pattern: RegExp, options: { parse: boolean; repeat: boolean }) => void })._internalAddChatPattern?.(name, pattern, { parse: true, repeat: true });
                     } catch (e) {
                         console.error(`[Xady] Failed to re-apply chat pattern ${name} for module ${module.getName()}:`, e);
                     }
@@ -193,9 +241,9 @@ export default class Client extends EventEmitter {
                 try {
                     const version = this.getBotOptions()?.version || "1.16.5";
                     // prismarine-chat sometimes crashes if not fully loaded or if reason is weird
-                    let parsed = reason;
+                    let parsed: string | Record<string, unknown> = reason;
                     if (typeof reason === 'string') {
-                        try { parsed = JSON.parse(reason); } catch (e) { }
+                        try { parsed = JSON.parse(reason) as Record<string, unknown>; } catch (e) { }
                     }
 
                     let msg = "";
@@ -210,13 +258,13 @@ export default class Client extends EventEmitter {
 
                     console.log(xady + error + chalk.redBright("Bot sunucudan atıldı (Kicked)!\nSebep:\n" + msg));
                 } catch (err) {
-                    let fallbackMsg = typeof reason === 'object' ? JSON.stringify(reason, null, 2) : String(reason);
+                    const fallbackMsg = typeof reason === 'object' ? JSON.stringify(reason, null, 2) : String(reason);
                     console.log(xady + error + chalk.redBright("Bot sunucudan atıldı (Kicked)!\nSebep:\n" + fallbackMsg));
                 }
             })
             .on("end", (reason) => {
                 // Sadece bot bilerek kapatılmadıysa (örneğin ayar değiştirip bağlanmıyorsak) handleReconnect yap
-                if (!this.botOptions) return;
+                if (!this.#botOptions) return;
                 console.log(xady + error + chalk.redBright(`Bot bağlantısı koptu. (Sebep: ${reason})`));
                 this.handleReconnect();
             })
@@ -225,21 +273,22 @@ export default class Client extends EventEmitter {
             });
     }
 
-    public handleReconnect(force: boolean = false) {
-        const cfg = (globalThis as any).Xady?.settings?.getConfig()?.bot || {};
+    public handleReconnect(force: boolean = false): void {
+        const globalCfg = (globalThis.Xady?.settings?.getConfig() || {}) as { bot?: BotConfig };
+        const cfg = globalCfg.bot || {} as BotConfig;
         const maxAttempts = cfg.maxReconnectAttempts ?? 10;
         const delay = cfg.reconnectDelay ?? 5000;
 
         if (force) {
-            this.reconnectAttempts = 0; // Reset attempts on manual reconnect
+            this.#reconnectAttempts = 0; // Reset attempts on manual reconnect
 
             // Re-fetch bot options from config in case it was disconnected
-            if (!this.botOptions) {
-                this.botOptions = {
-                    username: cfg.username,
-                    host: cfg.host,
-                    port: cfg.port,
-                    version: cfg.version,
+            if (!this.#botOptions) {
+                this.#botOptions = {
+                    username: cfg.username || 'bot',
+                    host: cfg.host || 'localhost',
+                    port: cfg.port || 25565,
+                    version: cfg.version || '1.16.5',
                     hideErrors: false,
                     keepAlive: true,
                     checkTimeoutInterval: 60 * 1000
@@ -247,42 +296,43 @@ export default class Client extends EventEmitter {
             }
         }
 
-        if (maxAttempts !== -1 && this.reconnectAttempts >= maxAttempts) {
+        if (maxAttempts !== -1 && this.#reconnectAttempts >= maxAttempts) {
             console.log(xady + error + chalk.redBright(`Maksimum yeniden bağlanma denemesine ulaşıldı (${maxAttempts}). Yeniden bağlanılmıyor.`));
             return;
         }
 
-        this.reconnectAttempts++;
-        console.log(xady + chalk.yellowBright(`Sunucuya yeniden bağlanılıyor... (Deneme: ${this.reconnectAttempts}${maxAttempts !== -1 ? `/${maxAttempts}` : ''}) - ${delay}ms beklenecek.`));
+        this.#reconnectAttempts++;
+        console.log(xady + chalk.yellowBright(`Sunucuya yeniden bağlanılıyor... (Deneme: ${this.#reconnectAttempts}${maxAttempts !== -1 ? `/${maxAttempts}` : ''}) - ${delay}ms beklenecek.`));
 
-        if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
-        this.reconnectTimeout = setTimeout(() => {
+        if (this.#reconnectTimeout) clearTimeout(this.#reconnectTimeout);
+        this.#reconnectTimeout = setTimeout(() => {
             // setTimeout çalıştığı anda ayarları YENİDEN okuyalım (dinamik olması için)
-            const freshCfg = (globalThis as any).Xady?.settings?.getConfig()?.bot || {};
+            const freshGlobalCfg = (globalThis.Xady?.settings?.getConfig() || {}) as { bot?: BotConfig };
+            const freshCfg = freshGlobalCfg.bot || {} as BotConfig;
             const freshMaxAttempts = freshCfg.maxReconnectAttempts ?? 10;
 
             // Eğer aradan geçen sürede sınır aşılmışsa tekrar denemesin
-            if (freshMaxAttempts !== -1 && this.reconnectAttempts >= freshMaxAttempts) {
+            if (freshMaxAttempts !== -1 && this.#reconnectAttempts >= freshMaxAttempts) {
                 console.log(xady + error + chalk.redBright(`Ayarlar güncellendi: Maksimum yeniden bağlanma denemesine ulaşıldı (${freshMaxAttempts}). İptal ediliyor.`));
                 return;
             }
 
-            if (this.botOptions) {
-                if (this.bot) {
-                    try { this.bot.end(); } catch (e) { }
-                    this.bot.removeAllListeners();
+            if (this.#botOptions) {
+                if (this.#bot) {
+                    try { this.#bot.end(); } catch (e) { }
+                    this.#bot.removeAllListeners();
                 }
-                this.startBot(this.botOptions);
+                this.startBot(this.#botOptions);
             }
         }, delay);
     }
 
-    public disconnectBot(reason?: string) {
-        if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
-        this.botOptions = undefined; // reconnect döngüsünü kırar
-        if (this.bot) {
-            try { this.bot.quit(reason); } catch (e) { }
-            this.bot.removeAllListeners();
+    public disconnectBot(reason?: string): void {
+        if (this.#reconnectTimeout) clearTimeout(this.#reconnectTimeout);
+        this.#botOptions = undefined; // reconnect döngüsünü kırar
+        if (this.#bot) {
+            try { this.#bot.quit(reason); } catch (e) { }
+            this.#bot.removeAllListeners();
         }
     }
 
@@ -306,30 +356,86 @@ export default class Client extends EventEmitter {
         return this.#execDir;
     }
 
-    registerPatternOwner(name: string, module: import("../models/BaseModule").default) {
-        this.patternOwners.set(name, module);
+    registerPatternOwner(name: string, module: BaseModule): void {
+        this.#patternOwners.set(name, module);
     }
 
-    unregisterPatternOwner(name: string) {
-        this.patternOwners.delete(name);
+    unregisterPatternOwner(name: string): void {
+        this.#patternOwners.delete(name);
     }
 
-    getPatternOwner(name: string): import("../models/BaseModule").default | undefined {
-        return this.patternOwners.get(name);
+    getPatternOwner(name: string): BaseModule | undefined {
+        return this.#patternOwners.get(name);
     }
 
     getBot(): Bot | undefined {
-        return this.safeBot;
+        return this.#safeBot;
     }
+    
     getConsoleCommandSender(): ConsoleCommandSender {
         return this.#consoleCommandSender;
     }
 
     getBotOptions(): BotOptions | undefined {
-        return this.botOptions;
+        return this.#botOptions;
     }
+    
+    /**
+     * Parse Minecraft chat component (NBT/JSON format) to plain text string
+     * @param component - Chat component object from Minecraft protocol
+     * @returns Plain text string
+     */
+    public parseChatComponent(component: unknown): string {
+        if (!component) return '';
+        if (typeof component === 'string') return component;
+        
+        try {
+            const version = this.#botOptions?.version || "1.16.5";
+            const registry = require("prismarine-registry")(version);
+            const ChatMessage = require("prismarine-chat")(registry);
+            const chatMsg = new ChatMessage(component);
+            return chatMsg.toString();
+        } catch (e) {
+            // Fallback: Manual parse
+            if (typeof component === 'object' && component !== null && 'value' in component) {
+                const comp = component as { value?: { text?: { value?: string }; extra?: { value?: { text?: { value?: string } }[] } } };
+                const text = comp.value?.text?.value || '';
+                const extra = comp.value?.extra?.value || [];
+                
+                let result = text;
+                for (const part of extra) {
+                    if (part.text?.value) {
+                        result += part.text.value;
+                    }
+                }
+                return result;
+            }
+            return JSON.stringify(component);
+        }
+    }
+    
+    /**
+     * Parse Minecraft chat component to ANSI colored string (for console)
+     * @param component - Chat component object from Minecraft protocol
+     * @returns ANSI colored string
+     */
+    public parseChatComponentAnsi(component: unknown): string {
+        if (!component) return '';
+        if (typeof component === 'string') return component;
+        
+        try {
+            const version = this.#botOptions?.version || "1.16.5";
+            const registry = require("prismarine-registry")(version);
+            const ChatMessage = require("prismarine-chat")(registry);
+            const chatMsg = new ChatMessage(component);
+            return chatMsg.toAnsi();
+        } catch (e) {
+            return this.parseChatComponent(component);
+        }
+    }
+    
     on<K extends keyof Events>(eventName: K, listener: (...args: Parameters<Events[K]>) => void): this {
         super.on(eventName, listener);
-        return this
+        return this;
     }
 }

@@ -52,7 +52,7 @@ export default class WebPosModule extends Xady.Module {
         this.#functionRegistry = new PosFunctionRegistry();
 
         // Manager ve handler'ları oluştur
-        this.#posManager = new PosManager(posConfig, this.#storage);
+        this.#posManager = new PosManager(posConfig, this.#storage, this.#functionRegistry);
         this.#httpHandler = new PosHttpHandler();
 
         // SSE olay dinleyicileri
@@ -120,6 +120,24 @@ export default class WebPosModule extends Xady.Module {
             return `<div class="card"><div class="card-body text-danger">[WebPos] Config görünüm dosyası bulunamadı.</div></div>`;
         });
 
+        // Admin paneli
+        webApi.registerView("/pos/admin", async (req: any, ctx: any) => {
+            if (!ctx.hasPerm("pos.admin")) {
+                return `<div class="card"><div class="card-body text-danger">Yetkiniz yok.</div></div>`;
+            }
+            const buf = this.getResource("src/views/admin-compiled.html");
+            if (buf) return buf.toString("utf8");
+            return `<div class="card"><div class="card-body text-danger">[WebPos] Admin görünümü bulunamadı.</div></div>`;
+        });
+
+        webApi.registerNav({
+            id: "webpos_admin",
+            title: "POS Admin",
+            path: "/pos/admin",
+            permission: "pos.admin",
+            scope: "admin",
+        });
+
         // Config sayfasını admin paneline ekle
         webApi.registerNav({
             id: "webpos_config",
@@ -134,6 +152,7 @@ export default class WebPosModule extends Xady.Module {
         webApi.registerPermission({ id: "pos.create", description: "Yeni ödeme oluşturma" });
         webApi.registerPermission({ id: "pos.cancel", description: "Ödeme iptal etme" });
         webApi.registerPermission({ id: "pos.config", description: "POS config görüntüleme ve düzenleme" });
+        webApi.registerPermission({ id: "pos.admin", description: "POS admin paneli (kullanıcı ve ödeme yönetimi)" });
 
         // HTTP handler'ı kaydet
         this.#registeredHttpHandler = this.#httpHandler.getHandler();
@@ -179,14 +198,17 @@ export default class WebPosModule extends Xady.Module {
             const navPath = cfg.getString("webpanel.nav_path", "/pos");
 
             webPanel.webApi.unregisterNav("webpos");
+            webPanel.webApi.unregisterNav("webpos_admin");
             webPanel.webApi.unregisterNav("webpos_config");
             webPanel.webApi.unregisterView(navPath);
             webPanel.webApi.unregisterView("/pos/history");
+            webPanel.webApi.unregisterView("/pos/admin");
             webPanel.webApi.unregisterView("/pos/config");
             webPanel.webApi.unregisterPermission("pos.view");
             webPanel.webApi.unregisterPermission("pos.create");
             webPanel.webApi.unregisterPermission("pos.cancel");
             webPanel.webApi.unregisterPermission("pos.config");
+            webPanel.webApi.unregisterPermission("pos.admin");
             if (this.#registeredHttpHandler) {
                 webPanel.webApi.unregisterHttp(this.#registeredHttpHandler);
             }

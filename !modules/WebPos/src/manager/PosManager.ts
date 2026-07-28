@@ -1,6 +1,7 @@
 import PosPayment, { POS_PAYMENT_STATUS } from "../models/PosPayment";
 import { randomUUID } from "crypto";
 import PosStorage from "../storage/PosStorage";
+import type PosFunctionRegistry from "./PosFunctionRegistry";
 
 export type PosConfig = {
     pattern: string;
@@ -25,13 +26,15 @@ export default class PosManager {
     #completedPayments: PosPayment[] = []; // son 100 tamamlanan ödeme
     #config: PosConfig;
     #storage: PosStorage;
+    #functionRegistry: PosFunctionRegistry;
     #onComplete: PaymentEventListener[] = [];
     #onCancel: PaymentEventListener[] = [];
     #onNew: PaymentEventListener[] = [];
 
-    constructor(config: PosConfig, storage: PosStorage) {
+    constructor(config: PosConfig, storage: PosStorage, functionRegistry: PosFunctionRegistry) {
         this.#config = config;
         this.#storage = storage;
+        this.#functionRegistry = functionRegistry;
         
         // Storage'dan tamamlanmış ödemeleri yükle
         this.#completedPayments = this.#storage.getPayments(100).map(data => new PosPayment(data));
@@ -48,7 +51,7 @@ export default class PosManager {
     /**
      * Yeni ödeme oluştur (WebPanel'den tetiklenir)
      */
-    createPayment(opts: { username: string; amount: number; description: string; createdBy: string }): PosPayment {
+    createPayment(opts: { username: string; amount: number; description: string; createdBy: string; productId?: string }): PosPayment {
         const id = randomUUID();
         const payment = new PosPayment({
             id,
@@ -57,6 +60,7 @@ export default class PosManager {
             description: opts.description,
             createdAt: Date.now(),
             createdBy: opts.createdBy,
+            productId: opts.productId,
         });
 
         // Timeout kaydı
@@ -85,7 +89,7 @@ export default class PosManager {
         const amount = this.#parseAmount(rawAmount);
         if (isNaN(amount) || amount <= 0) return false;
 
-        const payment = this.getPaymentByUser(username);
+        const payment = this.#getPaymentByUserAndAmount(username, amount);
         if (!payment) {
             // Aktif ödeme yok - paranın geri iadesini yap
             const refundCmd = this.#config.payCommand
@@ -146,6 +150,18 @@ export default class PosManager {
         user.addBalance(required);
         this.#storage.saveUser(user);
 
+        // Ürün action'larını çalıştır
+        const productId = payment.getProductId();
+        
+        if (productId) {
+            if (bot) {
+                const product = user.getProduct(productId);
+                if (product && product.actions && product.actions.length > 0) {
+                    this.#executeProductActions(product, username, bot);
+                }
+            }
+        }
+
         this.#archivePayment(payment);
         this.#payments.delete(payment.getId());
         this.#onComplete.forEach(cb => cb(payment));
@@ -199,6 +215,17 @@ export default class PosManager {
             return { success: false, error: `İade miktarı geçersiz. Kalan iade edilebilir miktar: ${this.#formatAmount(availableAmount)}⛁` };
         }
 
+        // Bakiye kontrolü
+        const createdBy = payment.getCreatedBy();
+        const user = this.#storage.getUser(createdBy);
+        if (!user) {
+            return { success: false, error: "Kullanıcı bulunamadı" };
+        }
+
+        if (user.getBalance() < refundAmount) {
+            return { success: false, error: `Yetersiz bakiye. Mevcut: ${this.#formatAmount(user.getBalance())}⛁, Gerekli: ${this.#formatAmount(refundAmount)}⛁` };
+        }
+
         // İade kaydını ekle
         payment.addRefund({
             id: randomUUID(),
@@ -207,6 +234,10 @@ export default class PosManager {
             refundedAt: Date.now(),
             reason: reason || undefined,
         });
+
+        // Bakiyeden düş
+        user.subtractBalance(refundAmount);
+        this.#storage.saveUser(user);
 
         // İade işlemi
         const refundCmd = this.#config.payCommand
@@ -229,6 +260,61 @@ export default class PosManager {
             }
         }
         return null;
+    }
+
+    getActivePaymentsByUser(username: string): PosPayment[] {
+        return Array.from(this.#payments.values()).filter(
+            p => p.getUsername() === username && p.getStatus() === POS_PAYMENT_STATUS.PENDING
+        );
+    }
+
+    /**
+     * Kullanıcıya ait aktif ödemelerden gönderilen tutara en yakın olanı bulur
+     */
+    #getPaymentByUserAndAmount(username: string, paidAmount: number): PosPayment | null {
+        const userPayments = Array.from(this.#payments.values()).filter(
+            p => p.getUsername() === username && p.getStatus() === POS_PAYMENT_STATUS.PENDING
+        );
+
+        if (userPayments.length === 0) return null;
+        if (userPayments.length === 1) return userPayments[0];
+
+        // Birden fazla ödeme var - gönderilen tutara en yakın olanı bul
+        // Öncelik: tam tutar > yeterli tutar > en yakın
+        let bestMatch: PosPayment | null = null;
+        let bestDiff = Infinity;
+
+        for (const payment of userPayments) {
+            const required = payment.getAmount();
+            
+            // Tam eşleşme - hemen döndür
+            if (paidAmount === required) {
+                return payment;
+            }
+
+            // Yeterli para gönderilmiş
+            if (paidAmount >= required) {
+                const diff = paidAmount - required;
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    bestMatch = payment;
+                }
+            }
+        }
+
+        // Yeterli ödeme bulunamadıysa, en yakın tutarı bul (eksik ödeme)
+        if (!bestMatch) {
+            for (const payment of userPayments) {
+                const required = payment.getAmount();
+                const diff = Math.abs(paidAmount - required);
+                if (diff < bestDiff) {
+                    bestDiff = diff;
+                    bestMatch = payment;
+                }
+            }
+        }
+
+        return bestMatch;
     }
 
     getPayment(id: string): PosPayment | undefined {
@@ -300,6 +386,32 @@ export default class PosManager {
             return num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         } else {
             return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    }
+
+    #executeProductActions(product: any, playerUsername: string, bot: any) {
+        if (!product.actions || product.actions.length === 0) return;
+
+        for (const action of product.actions) {
+            if (action.type === "command") {
+                const cmd = action.value.replace(/\{player\}/g, playerUsername);
+                bot.chat(cmd);
+            } else if (action.type === "function") {
+                try {
+                    const fn = this.#functionRegistry.getFunction(action.value);
+                    if (fn) {
+                        fn.execute({
+                            username: product.username || "",
+                            playerUsername: playerUsername,
+                            amount: product.price,
+                            productId: product.id,
+                            bot: bot,
+                        });
+                    }
+                } catch (err) {
+                    console.error("[WebPos] Fonksiyon çalıştırma hatası:", err);
+                }
+            }
         }
     }
 }

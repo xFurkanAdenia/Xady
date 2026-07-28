@@ -46,25 +46,37 @@ export default class PosHttpHandler {
             const session = ctx?.session;
             const hasPerm = ctx?.hasPerm;
 
-            // ── GET /api/pos/payments ── Aktif ödemeleri listele
+            // ── GET /api/pos/payments ── Aktif ödemeleri listele (kullanıcıya özel)
             if (u.pathname === "/api/pos/payments" && method === "GET") {
                 if (!session) return (json(res, 401, { ok: false, error: "Giriş yapınız." }), true);
                 if (!hasPerm?.("pos.view")) return (json(res, 403, { ok: false, error: "Yetersiz yetki." }), true);
 
                 const instance = WebPosModule.getInstance();
-                const active = instance.getPosManager().getActivePayments().map(p => p.toJSON());
-                json(res, 200, { ok: true, payments: active });
+                const allActive = instance.getPosManager().getActivePayments();
+                
+                // Sadece bu kullanıcının oluşturduğu ödemeleri filtrele
+                const userPayments = allActive
+                    .filter(p => p.getCreatedBy() === session.username)
+                    .map(p => p.toJSON());
+                
+                json(res, 200, { ok: true, payments: userPayments });
                 return true;
             }
 
-            // ── GET /api/pos/history ── Tamamlanan ödemeleri listele
+            // ── GET /api/pos/history ── Tamamlanan ödemeleri listele (kullanıcıya özel)
             if (u.pathname === "/api/pos/history" && method === "GET") {
                 if (!session) return (json(res, 401, { ok: false, error: "Giriş yapınız." }), true);
                 if (!hasPerm?.("pos.view")) return (json(res, 403, { ok: false, error: "Yetersiz yetki." }), true);
 
                 const instance = WebPosModule.getInstance();
-                const completed = instance.getPosManager().getCompletedPayments().map(p => p.toJSON());
-                json(res, 200, { ok: true, payments: completed });
+                const allCompleted = instance.getPosManager().getCompletedPayments();
+                
+                // Sadece bu kullanıcının oluşturduğu ödemeleri filtrele
+                const userPayments = allCompleted
+                    .filter(p => p.getCreatedBy() === session.username)
+                    .map(p => p.toJSON());
+                
+                json(res, 200, { ok: true, payments: userPayments });
                 return true;
             }
 
@@ -84,6 +96,7 @@ export default class PosHttpHandler {
                 const username = String(body.username ?? "").trim();
                 const amount = parseFloat(body.amount);
                 const description = String(body.description ?? "").trim().slice(0, 200);
+                const productId = body.productId ? String(body.productId).trim() : undefined;
 
                 if (!username) return (json(res, 400, { ok: false, error: "Oyuncu adı gerekli." }), true);
                 if (isNaN(amount) || amount <= 0) return (json(res, 400, { ok: false, error: "Geçerli bir tutar giriniz." }), true);
@@ -91,19 +104,22 @@ export default class PosHttpHandler {
                 const instance = WebPosModule.getInstance();
                 const manager = instance.getPosManager();
 
-                // Aynı oyuncuya ait aktif ödeme var mı?
-                if (manager.getPaymentByUser(username)) {
-                    return (json(res, 409, { ok: false, error: `${username} adlı oyuncunun zaten aktif bir ödemesi var.` }), true);
-                }
+                // Aynı oyuncuya ait aktif ödeme sayısını kontrol et
+                const existingCount = manager.getActivePaymentsByUser(username).length;
 
                 const payment = manager.createPayment({
                     username,
                     amount,
                     description,
                     createdBy: session.username,
+                    productId,
                 });
 
-                json(res, 201, { ok: true, payment: payment.toJSON() });
+                const message = existingCount > 0 
+                    ? `Ödeme oluşturuldu. Bu oyuncuya toplam ${existingCount + 1} aktif ödeme var.`
+                    : `Ödeme oluşturuldu.`;
+
+                json(res, 201, { ok: true, payment: payment.toJSON(), message });
                 return true;
             }
 
@@ -226,6 +242,56 @@ export default class PosHttpHandler {
                 }
 
                 json(res, 200, { ok: true, balance: user.getBalance() });
+                return true;
+            }
+
+            // ── POST /api/pos/withdraw ── Bakiyeden para çek
+            if (u.pathname === "/api/pos/withdraw" && method === "POST") {
+                if (!session) return (json(res, 401, { ok: false, error: "Giriş yapınız." }), true);
+
+                let body: any = {};
+                try {
+                    const buf = await readBody(req);
+                    body = JSON.parse(buf.toString("utf8"));
+                } catch {
+                    return (json(res, 400, { ok: false, error: "Geçersiz JSON." }), true);
+                }
+
+                const minecraftUsername = String(body.minecraftUsername ?? "").trim();
+                const amount = parseFloat(body.amount);
+
+                if (!minecraftUsername) return (json(res, 400, { ok: false, error: "Minecraft oyuncu adı gerekli." }), true);
+                if (isNaN(amount) || amount <= 0) return (json(res, 400, { ok: false, error: "Geçerli bir tutar giriniz." }), true);
+
+                const instance = WebPosModule.getInstance();
+                const storage = instance.getPosManager().getStorage();
+                const user = storage.getUser(session.username);
+
+                if (!user) {
+                    return (json(res, 404, { ok: false, error: "Kullanıcı bulunamadı." }), true);
+                }
+
+                if (user.getBalance() < amount) {
+                    return (json(res, 400, { ok: false, error: `Yetersiz bakiye. Mevcut: ${amount}⛁` }), true);
+                }
+
+                // Bakiyeden düş
+                if (!user.subtractBalance(amount)) {
+                    return (json(res, 400, { ok: false, error: "Yetersiz bakiye." }), true);
+                }
+                storage.saveUser(user);
+
+                // Oyun içinde para gönder
+                const bot = instance.getClient().getBot();
+                const config = instance.getPosManager().getConfig();
+                const cmd = config.payCommand
+                    .replace("{username}", minecraftUsername)
+                    .replace("{amount}", String(amount));
+                
+                bot?.chat(cmd);
+                bot?.chat(cmd);
+
+                json(res, 200, { ok: true, newBalance: user.getBalance() });
                 return true;
             }
 
@@ -376,6 +442,139 @@ export default class PosHttpHandler {
 
                 storage.saveUser(user);
                 json(res, 200, { ok: true });
+                return true;
+            }
+
+            // ── ADMIN ENDPOINTS ──────────────────────────────────────────
+
+            // ── GET /api/pos/admin/users ── Tüm kullanıcıları listele
+            if (u.pathname === "/api/pos/admin/users" && method === "GET") {
+                if (!session) return (json(res, 401, { ok: false, error: "Giriş yapınız." }), true);
+                if (!hasPerm?.("pos.admin")) return (json(res, 403, { ok: false, error: "Admin yetkisi gerekli." }), true);
+
+                const instance = WebPosModule.getInstance();
+                const storage = instance.getPosManager().getStorage();
+                const users = storage.getAllUsers().map(u => ({
+                    username: u.getUsername(),
+                    balance: u.getBalance(),
+                    productCount: u.getProducts().length,
+                    createdAt: u.getCreatedAt(),
+                }));
+
+                json(res, 200, { ok: true, users });
+                return true;
+            }
+
+            // ── GET /api/pos/admin/users/:username ── Kullanıcı detayı
+            if (u.pathname.match(/^\/api\/pos\/admin\/users\/[^/]+$/) && method === "GET") {
+                if (!session) return (json(res, 401, { ok: false, error: "Giriş yapınız." }), true);
+                if (!hasPerm?.("pos.admin")) return (json(res, 403, { ok: false, error: "Admin yetkisi gerekli." }), true);
+
+                const username = u.pathname.split('/')[5];
+                if (!username) return (json(res, 400, { ok: false, error: "Kullanıcı adı gerekli." }), true);
+
+                const instance = WebPosModule.getInstance();
+                const storage = instance.getPosManager().getStorage();
+                const user = storage.getUser(username);
+
+                if (!user) {
+                    return (json(res, 404, { ok: false, error: "Kullanıcı bulunamadı." }), true);
+                }
+
+                json(res, 200, { ok: true, user: user.toJSON() });
+                return true;
+            }
+
+            // ── PUT /api/pos/admin/users/:username/balance ── Bakiye düzenle
+            if (u.pathname.match(/^\/api\/pos\/admin\/users\/[^/]+\/balance$/) && method === "PUT") {
+                if (!session) return (json(res, 401, { ok: false, error: "Giriş yapınız." }), true);
+                if (!hasPerm?.("pos.admin")) return (json(res, 403, { ok: false, error: "Admin yetkisi gerekli." }), true);
+
+                const username = u.pathname.split('/')[5];
+                if (!username) return (json(res, 400, { ok: false, error: "Kullanıcı adı gerekli." }), true);
+
+                let body: any = {};
+                try {
+                    const buf = await readBody(req);
+                    body = JSON.parse(buf.toString("utf8"));
+                } catch {
+                    return (json(res, 400, { ok: false, error: "Geçersiz JSON." }), true);
+                }
+
+                const action = body.action; // "set" | "add" | "subtract"
+                const amount = parseFloat(body.amount);
+
+                if (!action || !["set", "add", "subtract"].includes(action)) {
+                    return (json(res, 400, { ok: false, error: "Geçersiz action. (set, add, subtract)" }), true);
+                }
+
+                if (isNaN(amount) || amount < 0) {
+                    return (json(res, 400, { ok: false, error: "Geçerli bir miktar giriniz." }), true);
+                }
+
+                const instance = WebPosModule.getInstance();
+                const storage = instance.getPosManager().getStorage();
+                let user = storage.getUser(username);
+
+                if (!user) {
+                    user = storage.createUser(username);
+                }
+
+                if (action === "set") {
+                    user.setBalance(amount);
+                } else if (action === "add") {
+                    user.addBalance(amount);
+                } else if (action === "subtract") {
+                    if (!user.subtractBalance(amount)) {
+                        return (json(res, 400, { ok: false, error: "Yetersiz bakiye." }), true);
+                    }
+                }
+
+                storage.saveUser(user);
+                json(res, 200, { ok: true, balance: user.getBalance() });
+                return true;
+            }
+
+            // ── GET /api/pos/admin/payments ── Tüm ödemeleri listele (pagination)
+            if (u.pathname === "/api/pos/admin/payments" && method === "GET") {
+                if (!session) return (json(res, 401, { ok: false, error: "Giriş yapınız." }), true);
+                if (!hasPerm?.("pos.admin")) return (json(res, 403, { ok: false, error: "Admin yetkisi gerekli." }), true);
+
+                const instance = WebPosModule.getInstance();
+                const page = parseInt(u.searchParams.get("page") || "1");
+                const limit = parseInt(u.searchParams.get("limit") || "20");
+                const search = u.searchParams.get("search") || "";
+                const username = u.searchParams.get("username") || "";
+
+                let allPayments = instance.getPosManager().getCompletedPayments();
+
+                // Filtrele
+                if (username) {
+                    allPayments = allPayments.filter(p => p.getCreatedBy() === username);
+                } else if (search) {
+                    const searchLower = search.toLowerCase();
+                    allPayments = allPayments.filter(p => 
+                        p.getUsername().toLowerCase().includes(searchLower) ||
+                        p.getCreatedBy().toLowerCase().includes(searchLower) ||
+                        p.getDescription().toLowerCase().includes(searchLower)
+                    );
+                }
+
+                const total = allPayments.length;
+                const start = (page - 1) * limit;
+                const end = start + limit;
+                const payments = allPayments.slice(start, end).map(p => p.toJSON());
+
+                json(res, 200, { 
+                    ok: true, 
+                    payments, 
+                    pagination: {
+                        page,
+                        limit,
+                        total,
+                        totalPages: Math.ceil(total / limit)
+                    }
+                });
                 return true;
             }
 

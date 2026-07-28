@@ -9,16 +9,18 @@ import { XadyScheduler } from "./XadyScheduler";
 
 export default class CommandManager {
     // We store plugin commands in an array since multiple modules can register the same command name.
-    private commands: Map<string, PluginCommand[]> = new Map();
-    private client: Client;
+    readonly #commands = new Map<string, PluginCommand[]>();
+    readonly #client: Client;
 
     constructor(client: Client) {
-        this.client = client;
+        this.#client = client;
     }
 
-    loadCommands = (dir: string): unknown[] => require("../functions/bot/loadCommands").default(this.client, dir);
+    public loadCommands(dir: string): unknown[] {
+        return require("../functions/bot/loadCommands").default(this.#client, dir);
+    }
 
-    registerCommand(command: PluginCommand) {
+    public registerCommand(command: PluginCommand): void {
         const name = command.getName().toLowerCase();
         
         // Safety guard: fake registry prevention
@@ -30,28 +32,28 @@ export default class CommandManager {
             }
         }
 
-        if (!this.commands.has(name)) {
-            this.commands.set(name, []);
+        if (!this.#commands.has(name)) {
+            this.#commands.set(name, []);
         }
-        this.commands.get(name)!.push(command);
+        this.#commands.get(name)!.push(command);
 
         for (const alias of command.getAliases()) {
             const aliasLower = alias.toLowerCase();
-            if (!this.commands.has(aliasLower)) {
-                this.commands.set(aliasLower, []);
+            if (!this.#commands.has(aliasLower)) {
+                this.#commands.set(aliasLower, []);
             }
-            this.commands.get(aliasLower)!.push(command);
+            this.#commands.get(aliasLower)!.push(command);
         }
     }
 
-    getCommand(name: string): PluginCommand | undefined {
+    public getCommand(name: string): PluginCommand | undefined {
         // Handle namespaced format like '!modulAdı:komut' or '!xady:komut'
         if (name.includes(":")) {
             const parts = name.split(":");
             const namespace = parts[0]!.toLowerCase();
             const cmdName = parts.slice(1).join(":").toLowerCase();
 
-            const cmdList = this.commands.get(cmdName);
+            const cmdList = this.#commands.get(cmdName);
             if (cmdList) {
                 return cmdList.find(c => {
                     const mod = c.getModule();
@@ -62,7 +64,7 @@ export default class CommandManager {
             return undefined;
         }
 
-        const list = this.commands.get(name.toLowerCase());
+        const list = this.#commands.get(name.toLowerCase());
         if (list && list.length > 0) {
             // Check for conflict warning
             if (list.length > 1) {
@@ -74,23 +76,23 @@ export default class CommandManager {
         return undefined;
     }
 
-    getCommands(): Map<string, PluginCommand[]> {
-        return this.commands;
+    public getCommands(): ReadonlyMap<string, readonly PluginCommand[]> {
+        return this.#commands;
     }
 
-    unregisterAll(module: import("../models/BaseModule").default) {
-        for (const [key, cmdList] of this.commands.entries()) {
+    public unregisterAll(module: import("../models/BaseModule").default): void {
+        for (const [key, cmdList] of this.#commands.entries()) {
             const filtered = cmdList.filter(c => c.getModule() !== module);
             if (filtered.length === 0) {
-                this.commands.delete(key);
+                this.#commands.delete(key);
             } else {
-                this.commands.set(key, filtered);
+                this.#commands.set(key, filtered);
             }
         }
     }
 
 
-    async executeCommand(sender: CommandSender, rawCommand: string): Promise<void> {
+    public async executeCommand(sender: CommandSender, rawCommand: string): Promise<void> {
         if (!rawCommand) return;
         const args = rawCommand.split(/\s+/);
         const label = args.shift()?.toLowerCase();

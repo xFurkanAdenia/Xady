@@ -4,7 +4,7 @@ const path = require('path');
 
 console.log('Building types using dts-bundle-generator...');
 try {
-    execSync('npx dts-bundle-generator -o typings/xady.d.ts src/types/index.ts --no-check --inline-declare-global --external-inlines mineflayer', { stdio: 'inherit' });
+    execSync('npx dts-bundle-generator -o typings/xady.d.ts src/types/index.ts --no-check --inline-declare-global --external-inlines mineflayer mineflayer-pathfinder', { stdio: 'inherit' });
 } catch (e) {
     console.error('Failed to run dts-bundle-generator');
     process.exit(1);

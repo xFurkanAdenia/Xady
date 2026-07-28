@@ -1,0 +1,8 @@
+name: WebInventory
+version: 1.0.0
+main: src/index.ts
+author: Xady
+description: WebPanel'de envanter görüntüleme modülü
+load: SPAWN
+dependencies:
+  - WebPanel

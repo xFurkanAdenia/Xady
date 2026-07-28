@@ -1,20 +1,29 @@
 export default class Response {
-    success: boolean;
-    message: string;
+    readonly #success: boolean;
+    readonly #message: string;
+    
     constructor(success: boolean, message: string) {
-        this.success = success;
-        this.message = message;
+        this.#success = success;
+        this.#message = message;
     }
 
-    toJson() {
-        return { success: this.success, message: this.message };
+    public get success(): boolean {
+        return this.#success;
     }
 
-    toString() {
-        return JSON.stringify({ success: this.success, message: this.message });
+    public get message(): string {
+        return this.#message;
     }
 
-    valueOf() {
-        return { success: this.success, message: this.message };
+    public toJson(): { success: boolean; message: string } {
+        return { success: this.#success, message: this.#message };
+    }
+
+    public toString(): string {
+        return JSON.stringify(this.toJson());
+    }
+
+    public valueOf(): { success: boolean; message: string } {
+        return this.toJson();
     }
 }
